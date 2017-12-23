@@ -347,11 +347,17 @@
             var image = new Image;
             image.onload = function(){
                 ctx.drawImage( image, 0, 0 );
-                var a = document.createElement("a");
+                var a = document.getElementById("download-link");
+                if(a == null)
+                {
+                    a = document.createElement("a");
+                    a.id = "download-link"
+                    document.getElementById("inputArea").appendChild(a)
+                }
+
                 a.href = canvas.toDataURL("image/png");
                 a.setAttribute("download", "image.png");
                 a.text = "ダウンロード"
-                document.getElementById("inputArea").appendChild(a)
             }
             image.src = "data:image/svg+xml;charset=utf-8;base64," + btoa(unescape(encodeURIComponent(svgData)));
         }
