@@ -4,8 +4,6 @@ simple mind map generator works on the browser
  ![tasks](https://github.com/miyatsuki/js-mindmap/blob/master/tasks.png "残りタスク")
 
 * 残タスク
-  * markdown対応
-    * 全角を半角に変える(#3)
   * html対応
     * innerhtmlに変える(#4)
   * 省スペース対応
