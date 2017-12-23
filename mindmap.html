@@ -108,7 +108,7 @@
     
         function drawMap(text)
         {
-            $("#map").empty();
+            initMap();
     
             nodeArray = parseText(text);
             nodeArray = decideNodePosition(nodeArray);
@@ -122,6 +122,21 @@
                     connectNodes(nodeArray[i], children[j]);                
                 }
             }
+        }
+
+        function initMap()
+        {
+            $("#map").empty();
+            
+            var rectElement = document.createElementNS(svgNS, "rect");
+            rectElement.setAttribute("width", document.getElementById("map").getAttribute("width"));
+            rectElement.setAttribute("height", document.getElementById("map").getAttribute("height"));
+            rectElement.setAttribute("x", 0);
+            rectElement.setAttribute("y", 0);
+            rectElement.setAttribute("fill", "white");
+            rectElement.setAttribute("stroke", "White");
+    
+            document.getElementById("map").appendChild(rectElement);
         }
     
         function decideNodePosition(nodeArray)
