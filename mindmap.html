@@ -43,7 +43,6 @@
         console.log(text)
         nodeArray = parseText(text);
         nodeArray = decideNodePosition(nodeArray);
-        console.log(nodeArray);
 
         for(var i = 0; i < nodeArray.length; i++)
         {
@@ -145,15 +144,21 @@
 
         for(var i = 0; i < textArray.length; i++)
         {
-            var level = 0;
+            var level = -1;
             var text = textArray[i];
 
             for(var j = 0; j < text.length; j++)
             {
-                if(text.startsWith("*"))
+                if(text.startsWith("  "))
+                {
+                    text = text.substring(2);
+                    level++;
+                }
+                else if(text.startsWith("*"))
                 {
                     text = text.substring(1);
                     level++;
+                    break;
                 }
                 else
                 {
