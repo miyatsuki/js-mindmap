@@ -10,8 +10,9 @@
     </style>
     <body>
         <div>
-            <div style="float:left">
+            <div id="inputArea" style="float:left">
                 <textarea id="text" name="text" rows="20" cols="40"></textarea>
+                <input type="button" id="savePNG" value="pngで保存">
             </div>
             <div style="float:left;">
             <svg id="map" width="1400" height="1400"></svg>
@@ -47,7 +48,12 @@
                 moveCaret(result, eve)
                 });
         })
-    
+
+        $("#savePNG").click(function(){
+            saveAsPNG();
+        })
+
+
         var nodeWidth = 100;
         var nodeHeight = 50;
         var xMargin = 50;
@@ -102,7 +108,7 @@
     
         function drawMap(text)
         {
-            $("#map").empty();
+            initMap();
     
             nodeArray = parseText(text);
             nodeArray = decideNodePosition(nodeArray);
@@ -116,6 +122,21 @@
                     connectNodes(nodeArray[i], children[j]);                
                 }
             }
+        }
+
+        function initMap()
+        {
+            $("#map").empty();
+            
+            var rectElement = document.createElementNS(svgNS, "rect");
+            rectElement.setAttribute("width", document.getElementById("map").getAttribute("width"));
+            rectElement.setAttribute("height", document.getElementById("map").getAttribute("height"));
+            rectElement.setAttribute("x", 0);
+            rectElement.setAttribute("y", 0);
+            rectElement.setAttribute("fill", "white");
+            rectElement.setAttribute("stroke", "White");
+    
+            document.getElementById("map").appendChild(rectElement);
         }
     
         function decideNodePosition(nodeArray)
@@ -312,6 +333,33 @@
             }
     
             return nodeArray;
+        }
+
+        function saveAsPNG()
+        {
+            var svg = document.querySelector("svg");
+            var svgData = new XMLSerializer().serializeToString(svg);
+            var canvas = document.createElement("canvas");
+            canvas.width = svg.width.baseVal.value;
+            canvas.height = svg.height.baseVal.value;
+
+            var ctx = canvas.getContext("2d");
+            var image = new Image;
+            image.onload = function(){
+                ctx.drawImage( image, 0, 0 );
+                var a = document.getElementById("download-link");
+                if(a == null)
+                {
+                    a = document.createElement("a");
+                    a.id = "download-link"
+                    document.getElementById("inputArea").appendChild(a)
+                }
+
+                a.href = canvas.toDataURL("image/png");
+                a.setAttribute("download", "image.png");
+                a.text = "ダウンロード(" + new Date().toString() + ")";
+            }
+            image.src = "data:image/svg+xml;charset=utf-8;base64," + btoa(unescape(encodeURIComponent(svgData)));
         }
     
         </script>
