@@ -55,6 +55,12 @@
     
         function moveCaret(val, eve)
         {
+            //変化量(val)が0のときに下手にキャレットを操作すると副作用が出るので即戻る
+            if(val == 0)
+            {
+                return;
+            }
+
             var index = eve.selectionStart;
             index += val;
 
