@@ -357,7 +357,7 @@
 
                 a.href = canvas.toDataURL("image/png");
                 a.setAttribute("download", "image.png");
-                a.text = "ダウンロード"
+                a.text = "ダウンロード(" + new Date().toString() + ")";
             }
             image.src = "data:image/svg+xml;charset=utf-8;base64," + btoa(unescape(encodeURIComponent(svgData)));
         }
