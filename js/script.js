@@ -99,21 +99,39 @@ function drawMap(text)
             connectNodes(nodeArray[i], children[j]);                
         }
     }
-}
 
-function initMap()
-{
-    $("#map").empty();
-    
+    //今のmindmapを書くのに必要なSVGの範囲を調べる
+    var xMax = 0;
+    var yMax = 0;
+
+    var textElements = document.getElementsByClassName("innerText");
+    for(var i = 0; i < textElements.length; i++)
+    {
+        xMax = Math.max(xMax, textElements[i].getBoundingClientRect().right);
+        yMax = Math.max(yMax, textElements[i].getBoundingClientRect().bottom);
+    }
+
+    var newWidth = xMax - document.getElementById("map").getBoundingClientRect().left 
+    var newHeight = yMax - document.getElementById("map").getBoundingClientRect().top
+
+    document.getElementById("map").setAttribute("width", newWidth)
+    document.getElementById("map").setAttribute("height", newHeight)
+
+    //SVGの幅に合わせて背景を白埋め
     var rectElement = document.createElementNS(svgNS, "rect");
-    rectElement.setAttribute("width", document.getElementById("map").getAttribute("width"));
-    rectElement.setAttribute("height", document.getElementById("map").getAttribute("height"));
+    rectElement.setAttribute("width", newWidth);
+    rectElement.setAttribute("height", newHeight);
     rectElement.setAttribute("x", 0);
     rectElement.setAttribute("y", 0);
     rectElement.setAttribute("fill", "white");
     rectElement.setAttribute("stroke", "White");
 
-    document.getElementById("map").appendChild(rectElement);
+    document.getElementById("map").insertBefore(rectElement, document.getElementById("map").firstChild);
+}
+
+function initMap()
+{
+    $("#map").empty();    
 }
 
 function decideNodePosition(nodeArray)
@@ -173,7 +191,7 @@ function drawSingleNode(text, x, y)
     foreignElement.setAttribute("y", y);
     var innerElement = document.createElementNS(htmlNS, "div");
     innerElement.innerHTML = text;
-    innerElement.style["padding"] = "0 5 0 5";
+    innerElement.setAttribute("class", "innerText");
 
     document.getElementById("map").appendChild(rectElement);
     document.getElementById("map").appendChild(foreignElement);
