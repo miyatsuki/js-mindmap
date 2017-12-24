@@ -5,3 +5,5 @@ var nodeWidth = 100;
 var nodeHeight = 50;
 var xMargin = 50;
 var yMargin = 20;
+
+var CREATE_INNER_TEXT = 0;

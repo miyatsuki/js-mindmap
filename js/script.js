@@ -2,24 +2,58 @@ var inputText = "";
 var isCompostioning = false;
 var context = {pressedKeyCode: null};
 
-$("#text").keyup(function(e){
-    context.pressedKeyCode = e.keyCode
-    executeMapCreation($(this).get(0));
-})
+var observer;
+var status = 0;
 
-//IME入力中に箱書いたり、テキストボックスを操作されると辛いのでブロック
-$("#text").on("compositionstart", function(){
-    isCompostioning = true;
-})
+init();
 
-$("#text").on("compositionend", function(){
-    isCompostioning = false;
-    executeMapCreation($(this).get(0));
-})
+function init()
+{
+    $("#text").keyup(function(e){
+        context.pressedKeyCode = e.keyCode
+        executeMapCreation($(this).get(0));
+    })
+    
+    //IME入力中に箱書いたり、テキストボックスを操作されると辛いのでブロック
+    $("#text").on("compositionstart", function(){
+        isCompostioning = true;
+    })
+    
+    $("#text").on("compositionend", function(){
+        isCompostioning = false;
+        executeMapCreation($(this).get(0));
+    })
+    
+    $("#savePNG").click(function(){
+        saveAsPNG();
+    })
 
-$("#savePNG").click(function(){
-    saveAsPNG();
-})
+    var observer = new MutationObserver(function(){onMapChanged(status)})
+    observer.observe(document.getElementById("map"), {attributes: true})
+}
+
+
+function onMapChanged(status)
+{
+    console.log("map changed");
+    switch(status)
+    {
+        case CREATE_INNER_TEXT:
+            status = adjustInnterTextSize();
+            break;
+        default:
+            status = CREATE_INNER_TEXT;
+            break;
+    }
+}
+
+function adjustInnterTextSize()
+{
+
+    status++;
+}
+
+
 
 function executeMapCreation(eve)
 {
@@ -75,7 +109,7 @@ function drawMap(text)
 
     for(var i = 0; i < nodeArray.length; i++)
     {
-        drawSingleNode(nodeArray[i].text, nodeArray[i].x, nodeArray[i].y)
+        drawSingleNode(nodeArray[i].text, nodeArray[i].x, nodeArray[i].y, nodeArray[i].id)
         var children = nodeArray[i].children;
         for(var j = 0; j < children.length; j++)
         {
@@ -156,23 +190,32 @@ function decideNodePosition(nodeArray)
     return nodeArray
 }
 
-function drawSingleNode(text, x, y)
+function drawSingleNode(text, x, y, id)
 {
     var rectElement = document.createElementNS(svgNS, "rect");
-    rectElement.setAttribute("width", nodeWidth);
-    rectElement.setAttribute("height", nodeHeight);
-    rectElement.setAttribute("x", x);
-    rectElement.setAttribute("y", y);
-    rectElement.setAttribute("fill", "white");
-    rectElement.setAttribute("stroke", "black");
+    rectElement = setAttributes(rectElement, {
+        width: nodeWidth,
+        height: nodeHeight,
+        x: x,
+        y: y,
+        fill: "white",
+        stroke: "black",
+    })
+    rectElement.classList.add("nodeID-" + id)
+
     var foreignElement = document.createElementNS(svgNS, "foreignObject");
-    foreignElement.setAttribute("width", nodeWidth);
-    foreignElement.setAttribute("height", nodeHeight); 
-    foreignElement.setAttribute("x", x);
-    foreignElement.setAttribute("y", y);
+    foreignElement = setAttributes(foreignElement, {
+        width: nodeWidth,
+        height: nodeHeight,
+        x: x,
+        y: y,
+    })
+    foreignElement.classList.add("nodeID-" + id)
+
     var innerElement = document.createElementNS(htmlNS, "div");
     innerElement.innerHTML = text;
-    innerElement.setAttribute("class", "innerText");
+    innerElement.classList.add("innerText");
+    innerElement.classList.add("nodeID-" + id)
 
     document.getElementById("map").appendChild(rectElement);
     document.getElementById("map").appendChild(foreignElement);
