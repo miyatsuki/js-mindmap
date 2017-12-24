@@ -8,19 +8,23 @@ var context = {pressedKeyCode: null};
 $("#text").keyup(function(e){
     context.pressedKeyCode = e.keyCode
     var eve = $(this).get(0);
-    $.when(createMap($(this).get(0))).done(function(result) {
+    console.log("keyup");
+    $.when(
+        createMap($(this).get(0))
+    ).done(function(result) {
         moveCaret(result, eve)
         });
 })
 
 //IME入力中に箱書いたり、テキストボックスを操作されると辛いのでブロック
 $("#text").on("compositionstart", function(){
-    isCompostioning = true;0
+    isCompostioning = true;
 })
 
 $("#text").on("compositionend", function(){
     isCompostioning = false;
     var eve = $(this).get(0);
+    console.log("compositionend");
     $.when(createMap($(this).get(0))).done(function(result) {
         moveCaret(result, eve)
         });
@@ -39,10 +43,12 @@ var yMargin = 20;
 function moveCaret(val, eve)
 {
     //変化量(val)が0のときに下手にキャレットを操作すると副作用が出るので即戻る
-    if(val == 0)
+    if(val.normalizeLog.length == 0)
     {
         return;
     }
+
+    $("#text").val(val.text);
 
     var index = eve.selectionStart;
     index += val;
@@ -59,34 +65,23 @@ function moveCaret(val, eve)
 function createMap(eve){
     if(inputText == $("#text").val() || isCompostioning)
     {
-        return 0;
+        return {caretMove: 0, text: inputText, normalizeLog: []};
     }
 
     inputText = $("#text").val()
-
+    console.log(inputText)
     var normalizedText = normalizeText(inputText);
-    var index = 0;
+    console.log(normalizedText)
 
-    //テキストボックス内の値を書き換えるとカーソルが後ろに飛ぶようなので先に値を拾っておく
-    if(normalizedText.changed)
-    {
-        var revIndex = inputText.length - index + 1;
+    initMap();
+    drawMap(normalizedText.text);
+    changeSVGSize();
 
-        inputText = normalizedText.text;
-        $("#text").val(inputText);
-
-        index += normalizedText.caretMove;
-        }
-
-    drawMap(inputText);
-
-    return index;
+    return normalizedText;
 }
 
 function drawMap(text)
 {
-    initMap();
-
     nodeArray = parseText(text);
     nodeArray = decideNodePosition(nodeArray);
 
@@ -99,7 +94,10 @@ function drawMap(text)
             connectNodes(nodeArray[i], children[j]);                
         }
     }
+}
 
+function changeSVGSize()
+{
     //今のmindmapを書くのに必要なSVGの範囲を調べる
     var xMax = 0;
     var yMax = 0;
@@ -119,12 +117,7 @@ function drawMap(text)
 
     //SVGの幅に合わせて背景を白埋め
     var rectElement = document.createElementNS(svgNS, "rect");
-    rectElement.setAttribute("width", newWidth);
-    rectElement.setAttribute("height", newHeight);
-    rectElement.setAttribute("x", 0);
-    rectElement.setAttribute("y", 0);
-    rectElement.setAttribute("fill", "white");
-    rectElement.setAttribute("stroke", "White");
+    rectElement = setAttributes(rectElement, {width: newWidth, height: newHeight, x: 0, y: 0, fill: "White", stroke: "White"})
 
     document.getElementById("map").insertBefore(rectElement, document.getElementById("map").firstChild);
 }
@@ -215,6 +208,7 @@ function normalizeText(text)
     textArray = text.split("\n")
     changed = false;
     caretMove = 0;
+    normalizeLog = [];
 
     for(var i = 0; i < textArray.length; i++)
     {
@@ -226,6 +220,7 @@ function normalizeText(text)
             text = text.replace(/　/g, "  ");
             changed = true;
             caretMove += 1; 
+            normalizeLog.push("/　/")
         }
 
         //文頭の＊入力効率化のため、文頭の＊を*に変換
@@ -234,10 +229,11 @@ function normalizeText(text)
             text = text.replace("＊", "*")
             changed = true;
             caretMove += 0; 
+            normalizeLog.push("/^\s*＊/")
         }
 
         //文頭の＊の入力効率化のため、*直後にスペースが無かったら自動挿入
-        if(!/^\s*\*\s/.test(text))
+        if(/^\s*\*/.test(text) && !/^\s*\*\s/.test(text))
         {
             //backspaceキー(8)とdelete(46)が押されている間に自動挿入が発動すると辛いので除外
             if(!(context.pressedKeyCode == 8 || context.pressedKeyCode == 46))
@@ -245,6 +241,7 @@ function normalizeText(text)
                 text = text.replace("*", "* ")
                 changed = true;
                 caretMove += 1;
+                normalizeLog.push("/^\s*\*\s")
             }
         }
 
@@ -254,13 +251,14 @@ function normalizeText(text)
             text = text.replace(/\*\s\s/, "* ")
             changed = true;
             caretMove -= 1;
+            normalizeLog.push("/\*\s{2,}/")
         }
 
         textArray[i] = text;
         
     }
 
-    return {changed: changed, caretMove: caretMove, text: textArray.join("\n")};
+    return {caretMove: caretMove, text: textArray.join("\n"), normalizeLog: normalizeLog};
 }
 
 function parseText(text)
