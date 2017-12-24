@@ -28,27 +28,29 @@ function init()
         saveAsPNG();
     })
 
-    var observer = new MutationObserver(function(){onMapChanged(status)})
+    var observer = new MutationObserver(adjustInnterTextSize)
     observer.observe(document.getElementById("map"), {attributes: true})
-}
-
-
-function onMapChanged(status)
-{
-    console.log("map changed");
-    switch(status)
-    {
-        case CREATE_INNER_TEXT:
-            status = adjustInnterTextSize();
-            break;
-        default:
-            status = CREATE_INNER_TEXT;
-            break;
-    }
 }
 
 function adjustInnterTextSize()
 {
+    var innerTextElements = document.getElementsByClassName("innerText");
+
+    for(var i = 0; i < innerTextElements.length; i++)
+    {
+        var height = innerTextElements[i].getBoundingClientRect().height;
+        var nodeID = innerTextElements[i].className.replace("innerText", "").trim()
+
+        var nodeElements = document.getElementsByClassName(nodeID)
+
+        for(var j = 0; j < nodeElements.length; j++)
+        {
+            if(nodeElements[j].tagName.toUpperCase() != "DIV")
+            {
+                nodeElements[j].setAttribute("height", height);
+            } 
+        }
+    }
 
     status++;
 }
