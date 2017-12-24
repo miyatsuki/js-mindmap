@@ -2,24 +2,60 @@ var inputText = "";
 var isCompostioning = false;
 var context = {pressedKeyCode: null};
 
-$("#text").keyup(function(e){
-    context.pressedKeyCode = e.keyCode
-    executeMapCreation($(this).get(0));
-})
+var observer;
+var status = 0;
 
-//IME入力中に箱書いたり、テキストボックスを操作されると辛いのでブロック
-$("#text").on("compositionstart", function(){
-    isCompostioning = true;
-})
+init();
 
-$("#text").on("compositionend", function(){
-    isCompostioning = false;
-    executeMapCreation($(this).get(0));
-})
+function init()
+{
+    $("#text").keyup(function(e){
+        context.pressedKeyCode = e.keyCode
+        executeMapCreation($(this).get(0));
+    })
+    
+    //IME入力中に箱書いたり、テキストボックスを操作されると辛いのでブロック
+    $("#text").on("compositionstart", function(){
+        isCompostioning = true;
+    })
+    
+    $("#text").on("compositionend", function(){
+        isCompostioning = false;
+        executeMapCreation($(this).get(0));
+    })
+    
+    $("#savePNG").click(function(){
+        saveAsPNG();
+    })
 
-$("#savePNG").click(function(){
-    saveAsPNG();
-})
+    var observer = new MutationObserver(adjustInnterTextSize)
+    observer.observe(document.getElementById("map"), {attributes: true})
+}
+
+function adjustInnterTextSize()
+{
+    var innerTextElements = document.getElementsByClassName("innerText");
+
+    for(var i = 0; i < innerTextElements.length; i++)
+    {
+        var height = innerTextElements[i].getBoundingClientRect().height;
+        var nodeID = innerTextElements[i].className.replace("innerText", "").trim()
+
+        var nodeElements = document.getElementsByClassName(nodeID)
+
+        for(var j = 0; j < nodeElements.length; j++)
+        {
+            if(nodeElements[j].tagName.toUpperCase() != "DIV")
+            {
+                nodeElements[j].setAttribute("height", height);
+            } 
+        }
+    }
+
+    status++;
+}
+
+
 
 function executeMapCreation(eve)
 {
@@ -75,7 +111,7 @@ function drawMap(text)
 
     for(var i = 0; i < nodeArray.length; i++)
     {
-        drawSingleNode(nodeArray[i].text, nodeArray[i].x, nodeArray[i].y)
+        drawSingleNode(nodeArray[i])
         var children = nodeArray[i].children;
         for(var j = 0; j < children.length; j++)
         {
@@ -156,23 +192,26 @@ function decideNodePosition(nodeArray)
     return nodeArray
 }
 
-function drawSingleNode(text, x, y)
+function drawSingleNode(node)
 {
+    var commonSettings = {
+            width: nodeWidth,
+            height: nodeHeight,
+            x: node.x,
+            y: node.y
+    }
+
     var rectElement = document.createElementNS(svgNS, "rect");
-    rectElement.setAttribute("width", nodeWidth);
-    rectElement.setAttribute("height", nodeHeight);
-    rectElement.setAttribute("x", x);
-    rectElement.setAttribute("y", y);
-    rectElement.setAttribute("fill", "white");
-    rectElement.setAttribute("stroke", "black");
+    rectElement = setAttributes(rectElement, locationSettings);
+    rectElement.setAttribute("class", "nodeRect nodeID-" + node.id)
+
     var foreignElement = document.createElementNS(svgNS, "foreignObject");
-    foreignElement.setAttribute("width", nodeWidth);
-    foreignElement.setAttribute("height", nodeHeight); 
-    foreignElement.setAttribute("x", x);
-    foreignElement.setAttribute("y", y);
+    foreignElement = setAttributes(foreignElement, locationSettings);
+    foreignElement.setAttribute("class", "nodeID-" + node.id)
+
     var innerElement = document.createElementNS(htmlNS, "div");
-    innerElement.innerHTML = text;
-    innerElement.setAttribute("class", "innerText");
+    innerElement.innerHTML = node.text;
+    innerElement.classList.add("innerText", "nodeID-" + node.id);
 
     document.getElementById("map").appendChild(rectElement);
     document.getElementById("map").appendChild(foreignElement);
