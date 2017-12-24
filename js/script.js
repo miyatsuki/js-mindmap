@@ -111,7 +111,7 @@ function drawMap(text)
 
     for(var i = 0; i < nodeArray.length; i++)
     {
-        drawSingleNode(nodeArray[i].text, nodeArray[i].x, nodeArray[i].y, nodeArray[i].id)
+        drawSingleNode(nodeArray[i])
         var children = nodeArray[i].children;
         for(var j = 0; j < children.length; j++)
         {
@@ -192,32 +192,26 @@ function decideNodePosition(nodeArray)
     return nodeArray
 }
 
-function drawSingleNode(text, x, y, id)
+function drawSingleNode(node)
 {
+    var commonSettings = {
+            width: nodeWidth,
+            height: nodeHeight,
+            x: node.x,
+            y: node.y
+    }
+
     var rectElement = document.createElementNS(svgNS, "rect");
-    rectElement = setAttributes(rectElement, {
-        width: nodeWidth,
-        height: nodeHeight,
-        x: x,
-        y: y,
-        fill: "white",
-        stroke: "black",
-    })
-    rectElement.classList.add("nodeID-" + id)
+    rectElement = setAttributes(rectElement, locationSettings);
+    rectElement.setAttribute("class", "nodeRect nodeID-" + node.id)
 
     var foreignElement = document.createElementNS(svgNS, "foreignObject");
-    foreignElement = setAttributes(foreignElement, {
-        width: nodeWidth,
-        height: nodeHeight,
-        x: x,
-        y: y,
-    })
-    foreignElement.classList.add("nodeID-" + id)
+    foreignElement = setAttributes(foreignElement, locationSettings);
+    foreignElement.setAttribute("class", "nodeID-" + node.id)
 
     var innerElement = document.createElementNS(htmlNS, "div");
-    innerElement.innerHTML = text;
-    innerElement.classList.add("innerText");
-    innerElement.classList.add("nodeID-" + id)
+    innerElement.innerHTML = node.text;
+    innerElement.classList.add("innerText", "nodeID-" + node.id);
 
     document.getElementById("map").appendChild(rectElement);
     document.getElementById("map").appendChild(foreignElement);
