@@ -1,19 +1,10 @@
-var svgNS = "http://www.w3.org/2000/svg";
-var htmlNS = "http://www.w3.org/1999/xhtml"
-
 var inputText = "";
 var isCompostioning = false;
 var context = {pressedKeyCode: null};
 
 $("#text").keyup(function(e){
     context.pressedKeyCode = e.keyCode
-    var eve = $(this).get(0);
-    console.log("keyup");
-    $.when(
-        createMap($(this).get(0))
-    ).done(function(result) {
-        moveCaret(result, eve)
-        });
+    executeMapCreation($(this).get(0));
 })
 
 //IME入力中に箱書いたり、テキストボックスを操作されると辛いのでブロック
@@ -23,22 +14,21 @@ $("#text").on("compositionstart", function(){
 
 $("#text").on("compositionend", function(){
     isCompostioning = false;
-    var eve = $(this).get(0);
-    console.log("compositionend");
-    $.when(createMap($(this).get(0))).done(function(result) {
-        moveCaret(result, eve)
-        });
+    executeMapCreation($(this).get(0));
 })
 
 $("#savePNG").click(function(){
     saveAsPNG();
 })
 
-
-var nodeWidth = 100;
-var nodeHeight = 50;
-var xMargin = 50;
-var yMargin = 20;
+function executeMapCreation(eve)
+{
+    $.when(
+        createMap($(this).get(0))
+    ).done(function(result) {
+        moveCaret(result, eve)
+    });
+}
 
 function moveCaret(val, eve)
 {
@@ -69,10 +59,8 @@ function createMap(eve){
     }
 
     inputText = $("#text").val()
-    console.log(inputText)
     var normalizedText = normalizeText(inputText);
-    console.log(normalizedText)
-
+    
     initMap();
     drawMap(normalizedText.text);
     changeSVGSize();
