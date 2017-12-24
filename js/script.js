@@ -27,35 +27,28 @@ function init()
     $("#savePNG").click(function(){
         saveAsPNG();
     })
-
-    var observer = new MutationObserver(adjustInnterTextSize)
-    observer.observe(document.getElementById("map"), {attributes: true})
 }
 
-function adjustInnterTextSize()
+function adjustInnerTextSize(nodeArray)
 {
+    console.log("observed");
     var innerTextElements = document.getElementsByClassName("innerText");
 
     for(var i = 0; i < innerTextElements.length; i++)
     {
         var height = innerTextElements[i].getBoundingClientRect().height;
-        var nodeID = innerTextElements[i].className.replace("innerText", "").trim()
-
-        var nodeElements = document.getElementsByClassName(nodeID)
-
-        for(var j = 0; j < nodeElements.length; j++)
-        {
-            if(nodeElements[j].tagName.toUpperCase() != "DIV")
-            {
-                nodeElements[j].setAttribute("height", height);
-            } 
-        }
+        var nodeID = innerTextElements[i].className.replace("innerText", "").replace("nodeID-", "").trim()
+        nodeArray[nodeID].height = height;
     }
+
+    observer.disconnect();
+
+    drawNodes(nodeArray);
+
+    changeSVGSize();
 
     status++;
 }
-
-
 
 function executeMapCreation(eve)
 {
@@ -97,18 +90,24 @@ function createMap(eve){
     inputText = $("#text").val()
     var normalizedText = normalizeText(inputText);
     
-    initMap();
-    drawMap(normalizedText.text);
-    changeSVGSize();
+    nodeArray = parseText(normalizedText.text);
+    nodeArray = setInitialNodeSettings(nodeArray);
+
+    observer = new MutationObserver(function(){
+        adjustInnerTextSize(nodeArray);
+    })
+    observer.observe(document.getElementById("map"), {childList: true})
+
+    drawNodes(nodeArray);
 
     return normalizedText;
 }
 
-function drawMap(text)
+function drawNodes(nodeArray)
 {
-    nodeArray = parseText(text);
     nodeArray = decideNodePosition(nodeArray);
 
+    initMap();
     for(var i = 0; i < nodeArray.length; i++)
     {
         drawSingleNode(nodeArray[i])
@@ -118,6 +117,17 @@ function drawMap(text)
             connectNodes(nodeArray[i], children[j]);                
         }
     }
+}
+
+function setInitialNodeSettings(nodeArray)
+{
+    for(var i = 0; i < nodeArray.length; i++)
+    {
+        nodeArray[i]["width"] = nodeWidth;
+        nodeArray[i]["height"] = nodeHeight;
+    }
+
+    return nodeArray;
 }
 
 function changeSVGSize()
@@ -153,7 +163,7 @@ function initMap()
 
 function decideNodePosition(nodeArray)
 {
-    var leafCounter = 0;
+    var yCounter = 0;
 
     for(var i = 0; i < nodeArray.length; i++)
     {
@@ -162,8 +172,8 @@ function decideNodePosition(nodeArray)
 
         if(nodeArray[i].children.length == 0)
         {
-            nodeArray[i]["y"] = leafCounter*(nodeHeight + yMargin)
-            leafCounter++;
+            nodeArray[i]["y"] = yCounter;
+            yCounter += nodeArray[i].height + yMargin;
         }
     }
 
@@ -176,12 +186,12 @@ function decideNodePosition(nodeArray)
 
             if(nodeArray[i].children.length % 2 == 1)
             {
-                y = nodeArray[i].children[middleNodeID].y;
+                y = nodeArray[i].children[middleNodeID].y + nodeArray[i].children[middleNodeID].height/2 - nodeArray[i].height/2;
             }
             else
             {
-                var y1 = nodeArray[i].children[middleNodeID].y;
-                var y2 = nodeArray[i].children[middleNodeID - 1].y;
+                var y1 = nodeArray[i].children[middleNodeID].y + nodeArray[i].children[middleNodeID].height/2 - nodeArray[i].height/2;
+                var y2 = nodeArray[i].children[middleNodeID - 1].y + nodeArray[i].children[middleNodeID - 1].height/2 - nodeArray[i].height/2;
                 y = (y1 + y2)/2;
             }
 
@@ -194,19 +204,12 @@ function decideNodePosition(nodeArray)
 
 function drawSingleNode(node)
 {
-    var commonSettings = {
-            width: nodeWidth,
-            height: nodeHeight,
-            x: node.x,
-            y: node.y
-    }
-
     var rectElement = document.createElementNS(svgNS, "rect");
-    rectElement = setAttributes(rectElement, locationSettings);
+    rectElement = setAttributes(rectElement, {fill: "white", stroke: "black"})
+
     rectElement.setAttribute("class", "nodeRect nodeID-" + node.id)
 
     var foreignElement = document.createElementNS(svgNS, "foreignObject");
-    foreignElement = setAttributes(foreignElement, locationSettings);
     foreignElement.setAttribute("class", "nodeID-" + node.id)
 
     var innerElement = document.createElementNS(htmlNS, "div");
@@ -216,15 +219,37 @@ function drawSingleNode(node)
     document.getElementById("map").appendChild(rectElement);
     document.getElementById("map").appendChild(foreignElement);
     foreignElement.appendChild(innerElement);
+
+    changeNodePosition(node);
+}
+
+function changeNodePosition(node)
+{
+    var commonSettings = {
+            width: node.width,
+            height: node.height,
+            x: node.x,
+            y: node.y
+    }
+
+    var nodeElements = document.getElementsByClassName("nodeID-" + node.id)
+
+    for(var i = 0; i < nodeElements.length; i++)
+    {
+        if(nodeElements[i].tagName.toUpperCase() != "DIV")
+        {
+            nodeElements[i] = setAttributes(nodeElements[i], commonSettings);
+        } 
+    }
 }
 
 function connectNodes(fromNode, toNode)
 {
     var lineElement = document.createElementNS(svgNS, "line");
-    lineElement.setAttribute("x1", fromNode.x + nodeWidth);
-    lineElement.setAttribute("y1", fromNode.y + nodeHeight/2);
+    lineElement.setAttribute("x1", fromNode.x + fromNode.width);
+    lineElement.setAttribute("y1", fromNode.y + fromNode.height/2);
     lineElement.setAttribute("x2", toNode.x);
-    lineElement.setAttribute("y2", toNode.y + nodeHeight/2);
+    lineElement.setAttribute("y2", toNode.y + toNode.height/2);
     lineElement.setAttribute("stroke", "black");
 
     document.getElementById("map").appendChild(lineElement);
