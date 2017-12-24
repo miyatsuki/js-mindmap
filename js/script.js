@@ -186,12 +186,12 @@ function decideNodePosition(nodeArray)
 
             if(nodeArray[i].children.length % 2 == 1)
             {
-                y = nodeArray[i].children[middleNodeID].y;
+                y = nodeArray[i].children[middleNodeID].y + nodeArray[i].children[middleNodeID].height/2 - nodeArray[i].height/2;
             }
             else
             {
-                var y1 = nodeArray[i].children[middleNodeID].y;
-                var y2 = nodeArray[i].children[middleNodeID - 1].y;
+                var y1 = nodeArray[i].children[middleNodeID].y + nodeArray[i].children[middleNodeID].height/2 - nodeArray[i].height/2;
+                var y2 = nodeArray[i].children[middleNodeID - 1].y + nodeArray[i].children[middleNodeID - 1].height/2 - nodeArray[i].height/2;
                 y = (y1 + y2)/2;
             }
 
@@ -246,10 +246,10 @@ function changeNodePosition(node)
 function connectNodes(fromNode, toNode)
 {
     var lineElement = document.createElementNS(svgNS, "line");
-    lineElement.setAttribute("x1", fromNode.x + nodeWidth);
-    lineElement.setAttribute("y1", fromNode.y + nodeHeight/2);
+    lineElement.setAttribute("x1", fromNode.x + fromNode.width);
+    lineElement.setAttribute("y1", fromNode.y + fromNode.height/2);
     lineElement.setAttribute("x2", toNode.x);
-    lineElement.setAttribute("y2", toNode.y + nodeHeight/2);
+    lineElement.setAttribute("y2", toNode.y + toNode.height/2);
     lineElement.setAttribute("stroke", "black");
 
     document.getElementById("map").appendChild(lineElement);
