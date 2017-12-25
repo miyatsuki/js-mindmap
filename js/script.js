@@ -26,7 +26,12 @@ function init()
     
     $("#savePNG").click(function(){
         saveAsPNG();
-    })
+	})
+	
+	var inputText = localStorage.getItem("text");
+	$("#text").val(inputText);
+	createMap(inputText);
+
 }
 
 function adjustInnerTextSize(nodeArray)
@@ -88,8 +93,9 @@ function createMap(eve){
     }
 
     inputText = $("#text").val()
-    var normalizedText = normalizeText(inputText);
-    
+	var normalizedText = normalizeText(inputText);
+	localStorage.setItem("text", inputText);
+	    
     nodeArray = parseText(normalizedText.text);
     nodeArray = setInitialNodeSettings(nodeArray);
 
