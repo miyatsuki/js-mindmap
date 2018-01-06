@@ -2,16 +2,23 @@ var inputText = "";
 var isCompostioning = false;
 var context = {pressedKeyCode: null};
 
-var observer;
-var status = 0;
+var nodeArray = [];
+var eve = undefined;
+var isBeforeAdjusted = true;
 
 init();
 
 function init()
 {
     $("#text").keyup(function(e){
+        eve = e;
         context.pressedKeyCode = e.keyCode
-        executeMapCreation($(this).get(0));
+        executeMapCreation();
+    })
+
+    $("#text").click(function(e){
+        eve = e;
+        emphasizeNode()
     })
     
     //IME入力中に箱書いたり、テキストボックスを操作されると辛いのでブロック
@@ -21,7 +28,8 @@ function init()
     
     $("#text").on("compositionend", function(){
         isCompostioning = false;
-        executeMapCreation($(this).get(0));
+        eve = e;
+        executeMapCreation();
     })
     
     $("#savePNG").click(function(){
@@ -30,36 +38,68 @@ function init()
 	
 	var inputText = localStorage.getItem("text");
 	$("#text").val(inputText);
-	createMap(inputText);
-
+    createMap(undefined);
+    onTextAreaChanged();
+    
+    var observer = new MutationObserver(onTextAreaChanged)
+    observer.observe(document.getElementById("map"), {childList: true})
 }
 
-function executeMapCreation(eve)
+function onTextAreaChanged()
 {
+    if(isBeforeAdjusted)
+    {
+        adjustInnerTextSize();
+        drawNodes();
+    
+        //初回描画だとeveがundefinedになる
+        if(eve != undefined)
+        {
+            emphasizeNode()
+        }
+    
+        changeSVGSize();    
+    }
+
+    isBeforeAdjusted = false;
+}
+
+function emphasizeNode()
+{
+    //テキストエリアの行数とnodeIDは一致するので、キャレットの行数を取得してそのIDを強調表示する
+    var emphasizeID = getCaretLineNumber($("#text"), eve);
+    changeSingleNodeColor(document.getElementsByClassName("nodeRect"), emphasizeID, "#E1F7E7", "white")
+}
+
+function executeMapCreation()
+{
+    isBeforeAdjusted = true;
+
     $.when(
-        createMap($(this).get(0))
+        createMap()
     ).done(function(result) {
         //変化量(result.normalizedLog)が0のときに下手にキャレットを操作すると副作用が出るので回避
         if(result.normalizeLog.length > 0)
         {
-            moveCaret(result, eve)
+            moveCaret(result)
         }
-    });
+        emphasizeNode()
+    })
 }
 
-function moveCaret(val, eve)
+function moveCaret(val)
 {
-    var index = eve.selectionStart + caretMove;
+    var index = eve.target.selectionStart + caretMove;
     index = setBetween(index, 0, $("#text").val().length);
 
-    dynamicSetinTextArea($("#text"), val.text, index, eve);
+    dynamicSetinTextArea($("#text"), val.text, index);
 
     window.setTimeout(function() {
-        eve.setSelectionRange(index, index);
+        eve.target.setSelectionRange(index, index);
     }, 0);
 }
 
-function createMap(eve){
+function createMap(){
     if(inputText == $("#text").val() || isCompostioning)
     {
         return {caretMove: 0, text: inputText, normalizeLog: []};
@@ -69,29 +109,16 @@ function createMap(eve){
 	var normalizedText = normalizeText(inputText);
 	localStorage.setItem("text", inputText);
 	    
-    nodeArray = parseText(normalizedText.text);
-    nodeArray = setInitialNodeSettings(nodeArray);
-
-    observer = new MutationObserver(function(){
-        adjustInnerTextSize(nodeArray);
-        
-        observer.disconnect();
-
-        drawNodes(nodeArray);
-        changeSVGSize();
-    
-        status++;    
-    })
-    observer.observe(document.getElementById("map"), {childList: true})
-
-    drawNodes(nodeArray);
+    parseText(normalizedText.text);
+    setInitialNodeSettings();
+    drawNodes();
 
     return normalizedText;
 }
 
-function drawNodes(nodeArray)
+function drawNodes()
 {
-    nodeArray = decideNodePosition(nodeArray);
+    decideNodePosition();
 
     initMap();
     for(var i = 0; i < nodeArray.length; i++)
@@ -105,15 +132,13 @@ function drawNodes(nodeArray)
     }
 }
 
-function setInitialNodeSettings(nodeArray)
+function setInitialNodeSettings()
 {
     for(var i = 0; i < nodeArray.length; i++)
     {
         nodeArray[i]["width"] = nodeWidth;
         nodeArray[i]["height"] = nodeHeight;
     }
-
-    return nodeArray;
 }
 
 function changeSVGSize()
@@ -147,7 +172,7 @@ function initMap()
     $("#map").empty();    
 }
 
-function decideNodePosition(nodeArray)
+function decideNodePosition()
 {
     var yCounter = 0;
 
@@ -184,29 +209,6 @@ function decideNodePosition(nodeArray)
             nodeArray[i]["y"] = y;
         }
     }
-
-    return nodeArray
-}
-
-function drawSingleNode(node)
-{
-    var rectElement = document.createElementNS(svgNS, "rect");
-    rectElement = setAttributes(rectElement, {fill: "white", stroke: "black"})
-
-    rectElement.setAttribute("class", "nodeRect nodeID-" + node.id)
-
-    var foreignElement = document.createElementNS(svgNS, "foreignObject");
-    foreignElement.setAttribute("class", "nodeID-" + node.id)
-
-    var innerElement = document.createElementNS(htmlNS, "div");
-    innerElement.innerHTML = node.text;
-    innerElement.classList.add("innerText", "nodeID-" + node.id);
-
-    document.getElementById("map").appendChild(rectElement);
-    document.getElementById("map").appendChild(foreignElement);
-    foreignElement.appendChild(innerElement);
-
-    changeNodePosition(node);
 }
 
 function changeNodePosition(node)
@@ -363,8 +365,6 @@ function parseText(text)
             childrenMap[nodeArray[i].parent.id].push(nodeArray[i]);
         }
     }
-
-    return nodeArray;
 }
 
 function saveAsPNG()

@@ -1,4 +1,4 @@
-function adjustInnerTextSize(nodeArray)
+function adjustInnerTextSize()
 {
     var innerTextElements = document.getElementsByClassName("innerText");
 
@@ -32,4 +32,41 @@ function propagateInnerTextSize(nodeArray)
             }
         }
     }    
+}
+
+function drawSingleNode(node)
+{
+    var rectElement = document.createElementNS(svgNS, "rect");
+    rectElement = setAttributes(rectElement, {fill: "white", stroke: "black"})
+
+    rectElement.setAttribute("class", "nodeRect nodeID-" + node.id)
+
+    var foreignElement = document.createElementNS(svgNS, "foreignObject");
+    foreignElement.setAttribute("class", "nodeID-" + node.id)
+
+    var innerElement = document.createElementNS(htmlNS, "div");
+    innerElement.innerHTML = node.text;
+    innerElement.classList.add("innerText", "nodeID-" + node.id);
+
+    document.getElementById("map").appendChild(rectElement);
+    document.getElementById("map").appendChild(foreignElement);
+    foreignElement.appendChild(innerElement);
+
+    changeNodePosition(node);
+}
+
+function changeSingleNodeColor(nodeRectElements, id, color, defaultColor)
+{
+    for(var i = 0; i < nodeRectElements.length; i++)
+    {
+        var nodeID = nodeRectElements[i].className.baseVal.replace("nodeRect", "").replace("nodeID-", "").trim()
+        if(nodeID == id)
+        {
+            nodeRectElements[i].setAttribute("fill", color)
+        }
+        else
+        {
+            nodeRectElements[i].setAttribute("fill", defaultColor)
+        }
+    }
 }

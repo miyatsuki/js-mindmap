@@ -21,11 +21,34 @@ function dynamicSetinTextArea(element, text, index, eve)
         throw new Error("element length is not 1.\n Please check you are selecting the corect JQuery element.")
     }
 
-    console.log(text)
     //一回空にして入れ直すとキャレットが飛ばないらしい？
 	element.val();	
     element.focus().val(text);
-    eve.setSelectionRange(index, index);
+    eve.target.setSelectionRange(index, index);
+}
+
+//キャレットが今何行目にいるか
+function getCaretLineNumber(element, eve)
+{
+    if(element.length != 1)
+    {
+        throw new Error("element length is not 1.\n Please check you are selecting the corect JQuery element.")
+    }
+
+    var index = eve.target.selectionStart;
+
+    var leftWords = index;
+    var texts = element.val().split("\n");
+
+    var ans = 0;
+    while(ans < texts.length && leftWords >= 0)
+    {
+        leftWords -= texts[ans].length + 1; //改行文字の分
+        ans++;
+    }
+
+    //最後の一回余計に++されるので一つ引いて返す
+    return ans - 1;
 }
 
 function setBetween(x, min, max)
