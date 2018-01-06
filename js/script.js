@@ -36,7 +36,6 @@ function init()
 
 function adjustInnerTextSize(nodeArray)
 {
-    console.log("observed");
     var innerTextElements = document.getElementsByClassName("innerText");
 
     for(var i = 0; i < innerTextElements.length; i++)
@@ -71,12 +70,13 @@ function moveCaret(val, eve)
     {
         return;
     }
-
-    $("#text").val(val.text);
-
     var index = eve.selectionStart;
-    index += val;
+	index += val.caretMove;
 
+	//一回空にして入れ直すとフォーカスが飛ばないらしい？
+	$("text").val();	
+	$("#text").focus().val(val.text);
+	
     index = Math.max(0, index);
     index = Math.min($("#text").val().length, index)
     eve.setSelectionRange(index, index)
