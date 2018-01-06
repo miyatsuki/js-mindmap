@@ -59,27 +59,20 @@ function executeMapCreation(eve)
     $.when(
         createMap($(this).get(0))
     ).done(function(result) {
-        moveCaret(result, eve)
+        //変化量(result.normalizedLog)が0のときに下手にキャレットを操作すると副作用が出るので回避
+        if(result.normalizeLog.length > 0)
+        {
+            moveCaret(result, eve)
+        }
     });
 }
 
 function moveCaret(val, eve)
 {
-    //変化量(val)が0のときに下手にキャレットを操作すると副作用が出るので即戻る
-    if(val.normalizeLog.length == 0)
-    {
-        return;
-    }
-    var index = eve.selectionStart;
-	index += val.caretMove;
+    var index = eve.selectionStart + caretMove;
+    index = setBetween(index, 0, $("#text").val().length);
 
-	//一回空にして入れ直すとフォーカスが飛ばないらしい？
-	$("text").val();	
-	$("#text").focus().val(val.text);
-	
-    index = Math.max(0, index);
-    index = Math.min($("#text").val().length, index)
-    eve.setSelectionRange(index, index)
+    dynamicSetinTextArea($("text"), val.text, index, eve);
 
     window.setTimeout(function() {
         eve.setSelectionRange(index, index);
