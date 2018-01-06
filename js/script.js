@@ -34,26 +34,6 @@ function init()
 
 }
 
-function adjustInnerTextSize(nodeArray)
-{
-    var innerTextElements = document.getElementsByClassName("innerText");
-
-    for(var i = 0; i < innerTextElements.length; i++)
-    {
-        var height = innerTextElements[i].getBoundingClientRect().height;
-        var nodeID = innerTextElements[i].className.replace("innerText", "").replace("nodeID-", "").trim()
-        nodeArray[nodeID].height = height;
-    }
-
-    observer.disconnect();
-
-    drawNodes(nodeArray);
-
-    changeSVGSize();
-
-    status++;
-}
-
 function executeMapCreation(eve)
 {
     $.when(
@@ -94,6 +74,13 @@ function createMap(eve){
 
     observer = new MutationObserver(function(){
         adjustInnerTextSize(nodeArray);
+        
+        observer.disconnect();
+
+        drawNodes(nodeArray);
+        changeSVGSize();
+    
+        status++;    
     })
     observer.observe(document.getElementById("map"), {childList: true})
 
