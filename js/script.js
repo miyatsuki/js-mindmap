@@ -329,6 +329,12 @@ function parseText(text)
                 level++;
                 break;
             }
+            else if(text.startsWith(" *"))
+            {
+                text = text.substring(2);
+                level++;
+                break;
+            }
             else
             {
                 break;
