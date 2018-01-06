@@ -52,7 +52,7 @@ function moveCaret(val, eve)
     var index = eve.selectionStart + caretMove;
     index = setBetween(index, 0, $("#text").val().length);
 
-    dynamicSetinTextArea($("text"), val.text, index, eve);
+    dynamicSetinTextArea($("#text"), val.text, index, eve);
 
     window.setTimeout(function() {
         eve.setSelectionRange(index, index);
@@ -252,13 +252,14 @@ function normalizeText(text)
     {
         var text = textArray[i];
 
-        //文頭のスペース入力効率化のため、全角スペースを半角2個に変換
+        //文頭のスペース入力効率化のため、全角スペースを半角1個に変換
+        //全角1スペースがいきなり2スペースになると焦るので置換だけにする
         if(/　/.test(text))
         {
-            text = text.replace(/　/g, "  ");
+            text = text.replace(/　/g, " ");
             changed = true;
-            caretMove += 1; 
-            normalizeLog.push("/　/")
+            caretMove += 0; 
+            normalizeLog.push("全角1スペ -> 半角1スペ")
         }
 
         //文頭の＊入力効率化のため、文頭の＊を*に変換

@@ -16,7 +16,13 @@ function setAttributes(element, attributesDict)
 //テキストエリアに代入する用の関数
 function dynamicSetinTextArea(element, text, index, eve)
 {
-    //一回空にして入れ直すとフォーカスが飛ばないらしい？
+    if(element.length != 1)
+    {
+        throw new Error("element length is not 1.\n Please check you are selecting the corect JQuery element.")
+    }
+
+    console.log(text)
+    //一回空にして入れ直すとキャレットが飛ばないらしい？
 	element.val();	
     element.focus().val(text);
     eve.setSelectionRange(index, index);
