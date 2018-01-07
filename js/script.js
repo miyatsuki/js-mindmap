@@ -39,29 +39,6 @@ function init()
 	var inputText = localStorage.getItem("text");
 	$("#text").val(inputText);
     createMap(undefined);
-    onTextAreaChanged();
-    
-    var observer = new MutationObserver(onTextAreaChanged)
-    observer.observe(document.getElementById("map"), {childList: true})
-}
-
-function onTextAreaChanged()
-{
-    if(isBeforeAdjusted)
-    {
-        adjustInnerTextSize();
-        drawNodes();
-    
-        //初回描画だとeveがundefinedになる
-        if(eve != undefined)
-        {
-            emphasizeNode()
-        }
-    
-        changeSVGSize();    
-    }
-
-    isBeforeAdjusted = false;
 }
 
 function emphasizeNode()
@@ -92,7 +69,7 @@ function moveCaret(val)
     var index = eve.target.selectionStart + caretMove;
     index = setBetween(index, 0, $("#text").val().length);
 
-    dynamicSetinTextArea($("#text"), val.text, index);
+    dynamicSetinTextArea($("#text"), val.text, index, eve);
 
     window.setTimeout(function() {
         eve.target.setSelectionRange(index, index);
@@ -112,6 +89,7 @@ function createMap(){
     parseText(normalizedText.text);
     setInitialNodeSettings();
     drawNodes();
+    changeSVGSize();
 
     return normalizedText;
 }
@@ -137,8 +115,9 @@ function setInitialNodeSettings()
     for(var i = 0; i < nodeArray.length; i++)
     {
         nodeArray[i]["width"] = nodeWidth;
-        nodeArray[i]["height"] = nodeHeight;
+        nodeArray[i]["height"] = innerMargin*3 + lineHeight * nodeArray[i].textArray.length
     }
+    propagateInnerTextSize(nodeArray)
 }
 
 function changeSVGSize()
@@ -147,7 +126,7 @@ function changeSVGSize()
     var xMax = 0;
     var yMax = 0;
 
-    var textElements = document.getElementsByClassName("innerText");
+    var textElements = document.getElementsByClassName("nodeRect");
     for(var i = 0; i < textElements.length; i++)
     {
         xMax = Math.max(xMax, textElements[i].getBoundingClientRect().right);
@@ -208,26 +187,6 @@ function decideNodePosition()
 
             nodeArray[i]["y"] = y;
         }
-    }
-}
-
-function changeNodePosition(node)
-{
-    var commonSettings = {
-            width: node.width,
-            height: node.height,
-            x: node.x,
-            y: node.y
-    }
-
-    var nodeElements = document.getElementsByClassName("nodeID-" + node.id)
-
-    for(var i = 0; i < nodeElements.length; i++)
-    {
-        if(nodeElements[i].tagName.toUpperCase() != "DIV")
-        {
-            nodeElements[i] = setAttributes(nodeElements[i], commonSettings);
-        } 
     }
 }
 
@@ -304,17 +263,17 @@ function normalizeText(text)
 
 function parseText(text)
 {
-    textArray = text.split("\n")
+    lines = text.split("\n")
     mapObject = new Object();
     nodeArray = [];
 
     levelArray = [];
     levelArray[0] = null;
 
-    for(var i = 0; i < textArray.length; i++)
+    for(var i = 0; i < lines.length; i++)
     {
         var level = -1;
-        var text = textArray[i];
+        var text = lines[i];
 
         for(var j = 0; j < text.length; j++)
         {
@@ -341,9 +300,9 @@ function parseText(text)
             }
         }
 
-        text = text.trim();
+        textArray = breakWord(text.trim(), characterPerLine); 
 
-        var node = {id: i.toString(), text: text, level: level, parent: levelArray[level]}
+        var node = {id: i.toString(), textArray: textArray, level: level, parent: levelArray[level]}
         nodeArray.push(node)
         levelArray[level + 1] = node;
     }
@@ -375,16 +334,7 @@ function parseText(text)
 
 function saveAsPNG()
 {
-    var svg = document.querySelector("svg");
-    var svgData = new XMLSerializer().serializeToString(svg);
-    var canvas = document.createElement("canvas");
-    canvas.width = svg.width.baseVal.value;
-    canvas.height = svg.height.baseVal.value;
-
-    var ctx = canvas.getContext("2d");
-    var image = new Image;
-    image.onload = function(){
-        ctx.drawImage( image, 0, 0 );
+    html2canvas(document.body).then(function(canvas){
         var a = document.getElementById("download-link");
         if(a == null)
         {
@@ -396,6 +346,5 @@ function saveAsPNG()
         a.href = canvas.toDataURL("image/png");
         a.setAttribute("download", "image.png");
         a.text = "ダウンロード(" + new Date().toString() + ")";
-    }
-    image.src = "data:image/svg+xml;charset=utf-8;base64," + btoa(unescape(encodeURIComponent(svgData)));
+    })
 }

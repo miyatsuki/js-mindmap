@@ -58,3 +58,34 @@ function setBetween(x, min, max)
     ans = Math.min(ans, max);
     return ans;
 }
+
+function breakWord(text, characterPerLine)
+{
+    ans = [""];
+
+    var lines = 0;
+    var count = 0;
+    for(var i = 0; i < text.length; i++)
+    {
+        if(text[i] == undefined)
+        {
+            throw new Error("hge")
+        }
+
+        count += text[i].match(/^[0-9a-zA-Z]+$/) ? 1 : 2;
+        if(count < characterPerLine)
+        {
+            ans[lines] = ans[lines] + text[i];
+        }
+
+        if(count >= characterPerLine)
+        {
+            lines++
+            ans[lines] = "";
+            i--;
+            count = 0;
+        }
+    }
+
+    return ans;
+}
