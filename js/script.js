@@ -308,12 +308,19 @@ function parseText(input) {
     }
 }
 
-function saveAsPNG()
-{
-    html2canvas(document.body).then(function(canvas){
+function saveAsPNG() {
+    var svg = document.querySelector("svg");
+    var svgData = new XMLSerializer().serializeToString(svg);
+    var canvas = document.createElement("canvas");
+    canvas.width = svg.width.baseVal.value;
+    canvas.height = svg.height.baseVal.value;
+
+    var ctx = canvas.getContext("2d");
+    var image = new Image;
+    image.onload = function () {
+        ctx.drawImage(image, 0, 0);
         var a = document.getElementById("download-link");
-        if(a == null)
-        {
+        if (a == null) {
             a = document.createElement("a");
             a.id = "download-link";
             document.getElementById("inputArea").appendChild(a)
@@ -322,5 +329,6 @@ function saveAsPNG()
         a.href = canvas.toDataURL("image/png");
         a.setAttribute("download", "image.png");
         a.text = "ダウンロード(" + new Date().toString() + ")";
-    })
+    };
+    image.src = "data:image/svg+xml;charset=utf-8;base64," + btoa(unescape(encodeURIComponent(svgData)));
 }
