@@ -82,7 +82,7 @@ function createMap(keyCode) {
 
     var svgSize = changeSVGSize();
     fillBackGroundWhite(svgSize);
-    
+
     return normalizedText;
 }
 

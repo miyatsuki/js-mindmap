@@ -15,6 +15,14 @@ function propagateInnerTextSize(nodeArray)
 
 function drawSingleNode(node)
 {
+    var rectElement = createRectElement(node);
+    var textElement = createTextElement(node);
+
+    document.getElementById("map").appendChild(rectElement);
+    document.getElementById("map").appendChild(textElement);
+}
+
+function createRectElement(node) {
     var rectSettings = {
         width: node.width,
         height: node.height,
@@ -22,35 +30,32 @@ function drawSingleNode(node)
         y: node.y
     };
 
-    var textSettings = {
-        width: node.width,
-        height: node.height - innerMargin * 2,
-        x: node.x + innerMargin,
-        y: node.y + innerMargin,
-        "font-family": "monospace"
-    };
-
     var rectElement = document.createElementNS(svgNS, "rect");
     rectElement = setAttributes(rectElement, {fill: "white", stroke: "black"});
     rectElement.setAttribute("class", "nodeRect nodeID-" + node.id);
     rectElement = setAttributes(rectElement, rectSettings);
 
+    return rectElement;
+}
+
+function createTextElement(node) {
+    var textSettings = getTextElementSettings(node);
     var textElement = document.createElementNS(svgNS, "text");
-    textElement.setAttribute("class", "nodeID-" + node.id);
-    textElement = setAttributes(textElement,textSettings);
-    
-    for(var i = 0; i < node.textArray.length; i++)
-    {
-        var tspanElement =  document.createElementNS(svgNS, "tspan");
-        tspanElement.innerHTML = node.textArray[i];
-        tspanElement.setAttribute("dy", lineHeight);
-        tspanElement.setAttribute("x", textSettings.x);
-        textElement.appendChild(tspanElement);
+    textElement = setAttributes(textElement, textSettings);
+
+    for (var i = 0; i < node.textArray.length; i++) {
+        textElement.appendChild(createTSpanElement(node, textSettings.x, i));
     }
 
-    document.getElementById("map").appendChild(rectElement);
-    document.getElementById("map").appendChild(textElement);
-    
+    return textElement
+}
+
+function createTSpanElement(node, parentX, lineNumber) {
+    var tspanElement = document.createElementNS(svgNS, "tspan");
+    tspanElement.innerHTML = node.textArray[lineNumber];
+    tspanElement.setAttribute("dy", lineHeight);
+    tspanElement.setAttribute("x", parentX);
+    return tspanElement;
 }
 
 function changeSingleNodeColor(nodeRectElements, id, color, defaultColor)
