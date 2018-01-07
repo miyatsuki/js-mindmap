@@ -2,7 +2,6 @@ var inputText = "";
 var isCompostioning = false;
 
 var nodeArray = [];
-var isBeforeAdjusted = true;
 var textAreaElement = $("#text");
 
 init();
@@ -48,18 +47,17 @@ function emphasizeNode(eve)
 
 function executeMapCreation(eve)
 {
-    isBeforeAdjusted = true;
-
-    $.when(
-        createMap(eve.keyCode)
-    ).done(function(result) {
-        //変化量(result.normalizedLog)が0のときに下手にキャレットを操作すると副作用が出るので回避
-        if(result.normalizeLog.length > 0)
-        {
-            moveCaret(result, eve)
-        }
-        emphasizeNode(eve)
-    })
+    if (inputText != textAreaElement.val() && !isCompostioning) {
+        $.when(
+            createMap(eve.keyCode)
+        ).done(function (result) {
+            //変化量(result.normalizedLog)が0のときに下手にキャレットを操作すると副作用が出るので回避
+            if (result.normalizeLog.length > 0) {
+                moveCaret(result, eve)
+            }
+            emphasizeNode(eve)
+        })
+    }
 }
 
 function moveCaret(val, eve)
@@ -75,25 +73,22 @@ function moveCaret(val, eve)
 }
 
 function createMap(keyCode) {
-    if(inputText == $("#text").val() || isCompostioning)
-    {
-        return {caretMove: 0, text: inputText, normalizeLog: []};
-    }
-
-    inputText = $("#text").val();
+    inputText = textAreaElement.val();
     var normalizedText = normalizeText(inputText, keyCode);
 	localStorage.setItem("text", inputText);
 	    
     parseText(normalizedText.text);
-    setInitialNodeSettings();
     drawNodes();
-    changeSVGSize();
 
+    var svgSize = changeSVGSize();
+    fillBackGroundWhite(svgSize);
+    
     return normalizedText;
 }
 
 function drawNodes()
 {
+    setInitialNodeSettings();
     decideNodePosition();
 
     initMap();
@@ -120,28 +115,46 @@ function setInitialNodeSettings()
 
 function changeSVGSize()
 {
-    //今のmindmapを書くのに必要なSVGの範囲を調べる
-    var xMax = 0;
-    var yMax = 0;
+    var size = calculateCurrentSVGSize();
 
-    var textElements = document.getElementsByClassName("nodeRect");
-    for(var i = 0; i < textElements.length; i++)
-    {
-        xMax = Math.max(xMax, textElements[i].getBoundingClientRect().right);
-        yMax = Math.max(yMax, textElements[i].getBoundingClientRect().bottom);
+    document.getElementById("map").setAttribute("width", size.width.toString());
+    document.getElementById("map").setAttribute("height", size.height.toString());
+
+    return size;
+}
+
+function calculateCurrentSVGSize() {
+    var rectElements = document.getElementsByClassName("nodeRect");
+    var mapElement = document.getElementById("map");
+
+    return {
+        width: calculateCurrentSVGWidth(rectElements, mapElement),
+        height: calculateCurrentSVGHeight(rectElements, mapElement)
+    }
+}
+
+function calculateCurrentSVGHeight(rectElements, mapElement) {
+    var yMax = rectElements[rectElements.length - 1].getBoundingClientRect().bottom;
+    var newHeight = yMax - mapElement.getBoundingClientRect().top;
+    return newHeight;
+}
+
+function calculateCurrentSVGWidth(rectElements, mapElement) {
+    var xMax = 0;
+    for (var i = 0; i < rectElements.length; i++) {
+        xMax = Math.max(xMax, rectElements[i].getBoundingClientRect().right);
     }
 
     var newWidth = xMax - document.getElementById("map").getBoundingClientRect().left;
-    var newHeight = yMax - document.getElementById("map").getBoundingClientRect().top;
+    return newWidth
+}
 
-    document.getElementById("map").setAttribute("width", newWidth);
-    document.getElementById("map").setAttribute("height", newHeight);
-
+function fillBackGroundWhite(size) {
     //SVGの幅に合わせて背景を白埋め
     var rectElement = document.createElementNS(svgNS, "rect");
     rectElement = setAttributes(rectElement, {
-        width: newWidth,
-        height: newHeight,
+        width: size.width,
+        height: size.height,
         x: 0,
         y: 0,
         fill: "White",
