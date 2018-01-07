@@ -1,70 +1,68 @@
 var inputText = "";
 var isCompostioning = false;
-var context = {pressedKeyCode: null};
 
 var nodeArray = [];
-var eve = undefined;
 var isBeforeAdjusted = true;
+var textAreaElement = $("#text");
 
 init();
 
 function init()
 {
-    $("#text").keyup(function(e){
-        eve = e;
-        context.pressedKeyCode = e.keyCode
-        executeMapCreation();
-    })
+    setTextAreaCallBack();
 
-    $("#text").click(function(e){
-        eve = e;
-        emphasizeNode()
-    })
-    
-    //IME入力中に箱書いたり、テキストボックスを操作されると辛いのでブロック
-    $("#text").on("compositionstart", function(){
-        isCompostioning = true;
-    })
-    
-    $("#text").on("compositionend", function(){
-        isCompostioning = false;
-        eve = e;
-        executeMapCreation();
-    })
-    
-    $("#savePNG").click(function(){
-        saveAsPNG();
-	})
-	
+    $("#savePNG").click(saveAsPNG);
+
 	var inputText = localStorage.getItem("text");
-	$("#text").val(inputText);
-    createMap(undefined);
+    textAreaElement.val(inputText);
+    createMap(-1);
 }
 
-function emphasizeNode()
+function setTextAreaCallBack() {
+    textAreaElement.keyup(function (e) {
+        executeMapCreation(e);
+    });
+
+    textAreaElement.click(function (e) {
+        emphasizeNode(e)
+    });
+
+    //IME入力中に箱書いたり、テキストボックスを操作されると辛いのでブロック
+    textAreaElement.on({
+        "compositionstart": function (e) {
+            isCompostioning = true;
+        },
+        "compositionend": function (e) {
+            isCompostioning = false;
+            executeMapCreation(e);
+        }
+    });
+}
+
+function emphasizeNode(eve)
 {
     //テキストエリアの行数とnodeIDは一致するので、キャレットの行数を取得してそのIDを強調表示する
     var emphasizeID = getCaretLineNumber($("#text"), eve);
     changeSingleNodeColor(document.getElementsByClassName("nodeRect"), emphasizeID, "#E1F7E7", "white")
 }
 
-function executeMapCreation()
+function executeMapCreation(eve)
 {
     isBeforeAdjusted = true;
 
     $.when(
-        createMap()
+        createMap(eve.keyCode)
     ).done(function(result) {
         //変化量(result.normalizedLog)が0のときに下手にキャレットを操作すると副作用が出るので回避
         if(result.normalizeLog.length > 0)
         {
-            moveCaret(result)
+            moveCaret(result, eve)
         }
-        emphasizeNode()
+        emphasizeNode(eve)
     })
 }
 
-function moveCaret(val)
+function moveCaret(val, eve)
 {
     var index = eve.target.selectionStart + caretMove;
     index = setBetween(index, 0, $("#text").val().length);
@@ -76,14 +74,14 @@ function moveCaret(val)
     }, 0);
 }
 
-function createMap(){
+function createMap(keyCode) {
     if(inputText == $("#text").val() || isCompostioning)
     {
         return {caretMove: 0, text: inputText, normalizeLog: []};
     }
 
-    inputText = $("#text").val()
-	var normalizedText = normalizeText(inputText);
+    inputText = $("#text").val();
+    var normalizedText = normalizeText(inputText, keyCode);
 	localStorage.setItem("text", inputText);
 	    
     parseText(normalizedText.text);
@@ -101,7 +99,7 @@ function drawNodes()
     initMap();
     for(var i = 0; i < nodeArray.length; i++)
     {
-        drawSingleNode(nodeArray[i])
+        drawSingleNode(nodeArray[i]);
         var children = nodeArray[i].children;
         for(var j = 0; j < children.length; j++)
         {
@@ -133,15 +131,22 @@ function changeSVGSize()
         yMax = Math.max(yMax, textElements[i].getBoundingClientRect().bottom);
     }
 
-    var newWidth = xMax - document.getElementById("map").getBoundingClientRect().left 
-    var newHeight = yMax - document.getElementById("map").getBoundingClientRect().top
+    var newWidth = xMax - document.getElementById("map").getBoundingClientRect().left;
+    var newHeight = yMax - document.getElementById("map").getBoundingClientRect().top;
 
-    document.getElementById("map").setAttribute("width", newWidth)
-    document.getElementById("map").setAttribute("height", newHeight)
+    document.getElementById("map").setAttribute("width", newWidth);
+    document.getElementById("map").setAttribute("height", newHeight);
 
     //SVGの幅に合わせて背景を白埋め
     var rectElement = document.createElementNS(svgNS, "rect");
-    rectElement = setAttributes(rectElement, {width: newWidth, height: newHeight, x: 0, y: 0, fill: "White", stroke: "White"})
+    rectElement = setAttributes(rectElement, {
+        width: newWidth,
+        height: newHeight,
+        x: 0,
+        y: 0,
+        fill: "White",
+        stroke: "White"
+    });
 
     document.getElementById("map").insertBefore(rectElement, document.getElementById("map").firstChild);
 }
@@ -158,7 +163,7 @@ function decideNodePosition()
     for(var i = 0; i < nodeArray.length; i++)
     {
         var level = nodeArray[i].level;
-        nodeArray[i]["x"] = level*(nodeWidth + xMargin)
+        nodeArray[i]["x"] = level * (nodeWidth + xMargin);
 
         if(nodeArray[i].children.length == 0)
         {
@@ -202,9 +207,8 @@ function connectNodes(fromNode, toNode)
     document.getElementById("map").appendChild(lineElement);
 }
 
-function normalizeText(text)
-{
-    textArray = text.split("\n")
+function normalizeText(text, keyCode) {
+    textArray = text.split("\n");
     changed = false;
     caretMove = 0;
     normalizeLog = [];
@@ -226,7 +230,7 @@ function normalizeText(text)
         //文頭の＊入力効率化のため、文頭の＊を*に変換
         if(/^\s*＊/.test(text))
         {
-            text = text.replace("＊", "*")
+            text = text.replace("＊", "*");
             changed = true;
             caretMove += 0; 
             normalizeLog.push("/^\s*＊/")
@@ -236,9 +240,9 @@ function normalizeText(text)
         if(/^\s*\*/.test(text) && !/^\s*\*\s/.test(text))
         {
             //backspaceキー(8)とdelete(46)が押されている間に自動挿入が発動すると辛いので除外
-            if(!(context.pressedKeyCode == 8 || context.pressedKeyCode == 46))
+            if (!(keyCode === 8 || keyCode === 46))
             {
-                text = text.replace("*", "* ")
+                text = text.replace("*", "* ");
                 changed = true;
                 caretMove += 1;
                 normalizeLog.push("/^\s*\*\s")
@@ -248,7 +252,7 @@ function normalizeText(text)
         //逆に*直後のスペースが多すぎるとmd的にだめなので1つにする
         while(/\*\s{2,}/.test(text))
         {
-            text = text.replace(/\*\s\s/, "* ")
+            text = text.replace(/\*\s\s/, "* ");
             changed = true;
             caretMove -= 1;
             normalizeLog.push("/\*\s{2,}/")
@@ -263,8 +267,8 @@ function normalizeText(text)
 
 function parseText(text)
 {
-    lines = text.split("\n")
-    mapObject = new Object();
+    lines = text.split("\n");
+    mapObject = {};
     nodeArray = [];
 
     levelArray = [];
@@ -300,10 +304,10 @@ function parseText(text)
             }
         }
 
-        textArray = breakWord(text.trim(), characterPerLine); 
+        textArray = breakWord(text.trim(), characterPerLine);
 
-        var node = {id: i.toString(), textArray: textArray, level: level, parent: levelArray[level]}
-        nodeArray.push(node)
+        var node = {id: i.toString(), textArray: textArray, level: level, parent: levelArray[level]};
+        nodeArray.push(node);
         levelArray[level + 1] = node;
     }
     
@@ -339,7 +343,7 @@ function saveAsPNG()
         if(a == null)
         {
             a = document.createElement("a");
-            a.id = "download-link"
+            a.id = "download-link";
             document.getElementById("inputArea").appendChild(a)
         }
 
