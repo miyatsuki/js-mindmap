@@ -1,43 +1,27 @@
 <html>
-    <head>
-        <script
+<head>
+    <script
             src="https://code.jquery.com/jquery-3.2.1.min.js"
             integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
             crossorigin="anonymous">
-        </script>
-        <script src="https://html2canvas.hertzen.com/dist/html2canvas.js"></script>    
-    </head>
-    <style>
-        .innerText{
-            padding: 0 5 0 5;
-			font-size: 80%;
-        	line-height: 110%;
-			word-break: break-all;
-        }
-        #inputArea{
-            position: fixed;
-            z-index: 10
-        }
-        #map{
-            position: absolute;
-            z-index: -1;
-            left: 350px
-        }
-    </style>
-    <body>
-        <div>
-            <div id="inputArea" style="float:left">
-                <textarea id="text" name="text" rows="20" cols="40"></textarea><br>
-                <input type="button" id="savePNG" value="pngで保存">
-            </div>
-            <div style="float:left;">
-            <svg id="map" width="1400" height="1400"></svg>
-            </div>
-        </div>
-        <script src="js/defines.js"></script>        
-        <script src="js/util.js"></script>        
-        <script src="js/view.js"></script>    
-        <script src="js/script.js"></script>
-      </body>
+    </script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.js"></script>
+</head>
+<style></style>
+<body>
+<div>
+    <div id="inputArea" style="float:left">
+        <label for="text"></label><textarea id="text" name="text" rows="20" cols="40"></textarea><br>
+        <input type="button" id="savePNG" value="pngで保存">
+    </div>
+    <div style="float:left;">
+        <svg id="map" width="1400" height="1400"></svg>
+    </div>
+</div>
+<script src="js/defines.js"></script>
+<script src="js/util.js"></script>
+<script src="js/view.js"></script>
+<script src="js/script.js"></script>
+</body>
 
-    </html>
+</html>

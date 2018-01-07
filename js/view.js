@@ -63,7 +63,7 @@ function changeSingleNodeColor(nodeRectElements, id, color, defaultColor)
     for(var i = 0; i < nodeRectElements.length; i++)
     {
         var nodeID = nodeRectElements[i].className.baseVal.replace("nodeRect", "").replace("nodeID-", "").trim();
-        if(nodeID == id)
+        if (nodeID === id)
         {
             nodeRectElements[i].setAttribute("fill", color)
         }
