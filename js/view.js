@@ -1,24 +1,3 @@
-function adjustInnerTextSize()
-{
-    var innerTextElements = document.getElementsByClassName("innerText");
-
-    //各ノードの実際の高さにnodeArrayのheightをあわせる
-    setActualInnerTextSize(innerTextElements, nodeArray)
-
-    //節ノードの方がheightが高い場合は葉ノードにheightを伝搬させる
-    propagateInnerTextSize(nodeArray)
-}
-
-function setActualInnerTextSize(innerTextElements, nodeArray)
-{
-    for(var i = 0; i < innerTextElements.length; i++)
-    {
-        var height = innerTextElements[i].getBoundingClientRect().height;
-        var nodeID = innerTextElements[i].className.replace("innerText", "").replace("nodeID-", "").trim()
-        nodeArray[nodeID].height = height;
-    }
-}
-
 function propagateInnerTextSize(nodeArray)
 {
     for(var i = 0; i < nodeArray.length; i++)
@@ -36,30 +15,54 @@ function propagateInnerTextSize(nodeArray)
 
 function drawSingleNode(node)
 {
-    var rectElement = document.createElementNS(svgNS, "rect");
-    rectElement = setAttributes(rectElement, {fill: "white", stroke: "black"})
-
-    rectElement.setAttribute("class", "nodeRect nodeID-" + node.id)
-
-    var foreignElement = document.createElementNS(svgNS, "foreignObject");
-    foreignElement.setAttribute("class", "nodeID-" + node.id)
-
-    var innerElement = document.createElementNS(htmlNS, "div");
-    innerElement.innerHTML = node.text;
-    innerElement.classList.add("innerText", "nodeID-" + node.id);
+    var rectElement = createRectElement(node);
+    var textElement = createTextElement(node);
 
     document.getElementById("map").appendChild(rectElement);
-    document.getElementById("map").appendChild(foreignElement);
-    foreignElement.appendChild(innerElement);
+    document.getElementById("map").appendChild(textElement);
+}
 
-    changeNodePosition(node);
+function createRectElement(node) {
+    var rectSettings = {
+        width: node.width,
+        height: node.height,
+        x: node.x,
+        y: node.y
+    };
+
+    var rectElement = document.createElementNS(svgNS, "rect");
+    rectElement = setAttributes(rectElement, {fill: "white", stroke: "black"});
+    rectElement.setAttribute("class", "nodeRect nodeID-" + node.id);
+    rectElement = setAttributes(rectElement, rectSettings);
+
+    return rectElement;
+}
+
+function createTextElement(node) {
+    var textSettings = getTextElementSettings(node);
+    var textElement = document.createElementNS(svgNS, "text");
+    textElement = setAttributes(textElement, textSettings);
+
+    for (var i = 0; i < node.textArray.length; i++) {
+        textElement.appendChild(createTSpanElement(node, textSettings.x, i));
+    }
+
+    return textElement
+}
+
+function createTSpanElement(node, parentX, lineNumber) {
+    var tspanElement = document.createElementNS(svgNS, "tspan");
+    tspanElement.innerHTML = node.textArray[lineNumber];
+    tspanElement.setAttribute("dy", lineHeight);
+    tspanElement.setAttribute("x", parentX);
+    return tspanElement;
 }
 
 function changeSingleNodeColor(nodeRectElements, id, color, defaultColor)
 {
     for(var i = 0; i < nodeRectElements.length; i++)
     {
-        var nodeID = nodeRectElements[i].className.baseVal.replace("nodeRect", "").replace("nodeID-", "").trim()
+        var nodeID = nodeRectElements[i].className.baseVal.replace("nodeRect", "").replace("nodeID-", "").trim();
         if(nodeID == id)
         {
             nodeRectElements[i].setAttribute("fill", color)

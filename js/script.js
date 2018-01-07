@@ -1,129 +1,100 @@
 var inputText = "";
 var isCompostioning = false;
-var context = {pressedKeyCode: null};
 
 var nodeArray = [];
-var eve = undefined;
-var isBeforeAdjusted = true;
+var textAreaElement = $("#text");
 
 init();
 
 function init()
 {
-    $("#text").keyup(function(e){
-        eve = e;
-        context.pressedKeyCode = e.keyCode
-        executeMapCreation();
-    })
+    setTextAreaCallBack();
 
-    $("#text").click(function(e){
-        eve = e;
-        emphasizeNode()
-    })
-    
-    //IME入力中に箱書いたり、テキストボックスを操作されると辛いのでブロック
-    $("#text").on("compositionstart", function(){
-        isCompostioning = true;
-    })
-    
-    $("#text").on("compositionend", function(){
-        isCompostioning = false;
-        eve = e;
-        executeMapCreation();
-    })
-    
-    $("#savePNG").click(function(){
-        saveAsPNG();
-	})
-	
+    $("#savePNG").click(saveAsPNG);
+
 	var inputText = localStorage.getItem("text");
-	$("#text").val(inputText);
-    createMap(undefined);
-    onTextAreaChanged();
-    
-    var observer = new MutationObserver(onTextAreaChanged)
-    observer.observe(document.getElementById("map"), {childList: true})
+    textAreaElement.val(inputText);
+    createMap(-1);
 }
 
-function onTextAreaChanged()
-{
-    if(isBeforeAdjusted)
-    {
-        adjustInnerTextSize();
-        drawNodes();
-    
-        //初回描画だとeveがundefinedになる
-        if(eve != undefined)
-        {
-            emphasizeNode()
+function setTextAreaCallBack() {
+    textAreaElement.keyup(function (e) {
+        executeMapCreation(e);
+    });
+
+    textAreaElement.click(function (e) {
+        emphasizeNode(e)
+    });
+
+    //IME入力中に箱書いたり、テキストボックスを操作されると辛いのでブロック
+    textAreaElement.on({
+        "compositionstart": function (e) {
+            isCompostioning = true;
+        },
+        "compositionend": function (e) {
+            isCompostioning = false;
+            executeMapCreation(e);
         }
-    
-        changeSVGSize();    
-    }
-
-    isBeforeAdjusted = false;
+    });
 }
 
-function emphasizeNode()
+function emphasizeNode(eve)
 {
     //テキストエリアの行数とnodeIDは一致するので、キャレットの行数を取得してそのIDを強調表示する
     var emphasizeID = getCaretLineNumber($("#text"), eve);
     changeSingleNodeColor(document.getElementsByClassName("nodeRect"), emphasizeID, "#E1F7E7", "white")
 }
 
-function executeMapCreation()
+function executeMapCreation(eve)
 {
-    isBeforeAdjusted = true;
-
-    $.when(
-        createMap()
-    ).done(function(result) {
-        //変化量(result.normalizedLog)が0のときに下手にキャレットを操作すると副作用が出るので回避
-        if(result.normalizeLog.length > 0)
-        {
-            moveCaret(result)
-        }
-        emphasizeNode()
-    })
+    if (inputText != textAreaElement.val() && !isCompostioning) {
+        $.when(
+            createMap(eve.keyCode)
+        ).done(function (result) {
+            //変化量(result.normalizedLog)が0のときに下手にキャレットを操作すると副作用が出るので回避
+            if (result.normalizeLog.length > 0) {
+                moveCaret(result, eve)
+            }
+            emphasizeNode(eve)
+        })
+    }
 }
 
-function moveCaret(val)
+function moveCaret(val, eve)
 {
     var index = eve.target.selectionStart + caretMove;
     index = setBetween(index, 0, $("#text").val().length);
 
-    dynamicSetinTextArea($("#text"), val.text, index);
+    dynamicSetinTextArea($("#text"), val.text, index, eve);
 
     window.setTimeout(function() {
         eve.target.setSelectionRange(index, index);
     }, 0);
 }
 
-function createMap(){
-    if(inputText == $("#text").val() || isCompostioning)
-    {
-        return {caretMove: 0, text: inputText, normalizeLog: []};
-    }
-
-    inputText = $("#text").val()
-	var normalizedText = normalizeText(inputText);
+function createMap(keyCode) {
+    inputText = textAreaElement.val();
+    var normalizedText = normalizeText(inputText, keyCode);
 	localStorage.setItem("text", inputText);
 	    
     parseText(normalizedText.text);
-    setInitialNodeSettings();
     drawNodes();
+
+    var svgSize = changeSVGSize();
+    fillBackGroundWhite(svgSize);
 
     return normalizedText;
 }
 
 function drawNodes()
 {
+    setInitialNodeSettings();
     decideNodePosition();
 
     initMap();
     for(var i = 0; i < nodeArray.length; i++)
     {
-        drawSingleNode(nodeArray[i])
+        drawSingleNode(nodeArray[i]);
         var children = nodeArray[i].children;
         for(var j = 0; j < children.length; j++)
         {
@@ -137,32 +108,58 @@ function setInitialNodeSettings()
     for(var i = 0; i < nodeArray.length; i++)
     {
         nodeArray[i]["width"] = nodeWidth;
-        nodeArray[i]["height"] = nodeHeight;
+        nodeArray[i]["height"] = innerMargin*3 + lineHeight * nodeArray[i].textArray.length
     }
+    propagateInnerTextSize(nodeArray)
 }
 
 function changeSVGSize()
 {
-    //今のmindmapを書くのに必要なSVGの範囲を調べる
-    var xMax = 0;
-    var yMax = 0;
+    var size = calculateCurrentSVGSize();
 
-    var textElements = document.getElementsByClassName("innerText");
-    for(var i = 0; i < textElements.length; i++)
-    {
-        xMax = Math.max(xMax, textElements[i].getBoundingClientRect().right);
-        yMax = Math.max(yMax, textElements[i].getBoundingClientRect().bottom);
+    document.getElementById("map").setAttribute("width", size.width.toString());
+    document.getElementById("map").setAttribute("height", size.height.toString());
+
+    return size;
+}
+
+function calculateCurrentSVGSize() {
+    var rectElements = document.getElementsByClassName("nodeRect");
+    var mapElement = document.getElementById("map");
+
+    return {
+        width: calculateCurrentSVGWidth(rectElements, mapElement),
+        height: calculateCurrentSVGHeight(rectElements, mapElement)
+    }
+}
+
+function calculateCurrentSVGHeight(rectElements, mapElement) {
+    var yMax = rectElements[rectElements.length - 1].getBoundingClientRect().bottom;
+    var newHeight = yMax - mapElement.getBoundingClientRect().top;
+    return newHeight;
+}
+
+function calculateCurrentSVGWidth(rectElements, mapElement) {
+    var xMax = 0;
+    for (var i = 0; i < rectElements.length; i++) {
+        xMax = Math.max(xMax, rectElements[i].getBoundingClientRect().right);
     }
 
-    var newWidth = xMax - document.getElementById("map").getBoundingClientRect().left 
-    var newHeight = yMax - document.getElementById("map").getBoundingClientRect().top
+    var newWidth = xMax - document.getElementById("map").getBoundingClientRect().left;
+    return newWidth
+}
 
-    document.getElementById("map").setAttribute("width", newWidth)
-    document.getElementById("map").setAttribute("height", newHeight)
-
+function fillBackGroundWhite(size) {
     //SVGの幅に合わせて背景を白埋め
     var rectElement = document.createElementNS(svgNS, "rect");
-    rectElement = setAttributes(rectElement, {width: newWidth, height: newHeight, x: 0, y: 0, fill: "White", stroke: "White"})
+    rectElement = setAttributes(rectElement, {
+        width: size.width,
+        height: size.height,
+        x: 0,
+        y: 0,
+        fill: "White",
+        stroke: "White"
+    });
 
     document.getElementById("map").insertBefore(rectElement, document.getElementById("map").firstChild);
 }
@@ -179,7 +176,7 @@ function decideNodePosition()
     for(var i = 0; i < nodeArray.length; i++)
     {
         var level = nodeArray[i].level;
-        nodeArray[i]["x"] = level*(nodeWidth + xMargin)
+        nodeArray[i]["x"] = level * (nodeWidth + xMargin);
 
         if(nodeArray[i].children.length == 0)
         {
@@ -211,26 +208,6 @@ function decideNodePosition()
     }
 }
 
-function changeNodePosition(node)
-{
-    var commonSettings = {
-            width: node.width,
-            height: node.height,
-            x: node.x,
-            y: node.y
-    }
-
-    var nodeElements = document.getElementsByClassName("nodeID-" + node.id)
-
-    for(var i = 0; i < nodeElements.length; i++)
-    {
-        if(nodeElements[i].tagName.toUpperCase() != "DIV")
-        {
-            nodeElements[i] = setAttributes(nodeElements[i], commonSettings);
-        } 
-    }
-}
-
 function connectNodes(fromNode, toNode)
 {
     var lineElement = document.createElementNS(svgNS, "line");
@@ -243,9 +220,8 @@ function connectNodes(fromNode, toNode)
     document.getElementById("map").appendChild(lineElement);
 }
 
-function normalizeText(text)
-{
-    textArray = text.split("\n")
+function normalizeText(text, keyCode) {
+    textArray = text.split("\n");
     changed = false;
     caretMove = 0;
     normalizeLog = [];
@@ -267,7 +243,7 @@ function normalizeText(text)
         //文頭の＊入力効率化のため、文頭の＊を*に変換
         if(/^\s*＊/.test(text))
         {
-            text = text.replace("＊", "*")
+            text = text.replace("＊", "*");
             changed = true;
             caretMove += 0; 
             normalizeLog.push("/^\s*＊/")
@@ -277,9 +253,9 @@ function normalizeText(text)
         if(/^\s*\*/.test(text) && !/^\s*\*\s/.test(text))
         {
             //backspaceキー(8)とdelete(46)が押されている間に自動挿入が発動すると辛いので除外
-            if(!(context.pressedKeyCode == 8 || context.pressedKeyCode == 46))
+            if (!(keyCode === 8 || keyCode === 46))
             {
-                text = text.replace("*", "* ")
+                text = text.replace("*", "* ");
                 changed = true;
                 caretMove += 1;
                 normalizeLog.push("/^\s*\*\s")
@@ -289,7 +265,7 @@ function normalizeText(text)
         //逆に*直後のスペースが多すぎるとmd的にだめなので1つにする
         while(/\*\s{2,}/.test(text))
         {
-            text = text.replace(/\*\s\s/, "* ")
+            text = text.replace(/\*\s\s/, "* ");
             changed = true;
             caretMove -= 1;
             normalizeLog.push("/\*\s{2,}/")
@@ -304,17 +280,17 @@ function normalizeText(text)
 
 function parseText(text)
 {
-    textArray = text.split("\n")
-    mapObject = new Object();
+    lines = text.split("\n");
+    mapObject = {};
     nodeArray = [];
 
     levelArray = [];
     levelArray[0] = null;
 
-    for(var i = 0; i < textArray.length; i++)
+    for(var i = 0; i < lines.length; i++)
     {
         var level = -1;
-        var text = textArray[i];
+        var text = lines[i];
 
         for(var j = 0; j < text.length; j++)
         {
@@ -341,10 +317,10 @@ function parseText(text)
             }
         }
 
-        text = text.trim();
+        textArray = breakWord(text.trim(), characterPerLine);
 
-        var node = {id: i.toString(), text: text, level: level, parent: levelArray[level]}
-        nodeArray.push(node)
+        var node = {id: i.toString(), textArray: textArray, level: level, parent: levelArray[level]};
+        nodeArray.push(node);
         levelArray[level + 1] = node;
     }
     
@@ -375,27 +351,17 @@ function parseText(text)
 
 function saveAsPNG()
 {
-    var svg = document.querySelector("svg");
-    var svgData = new XMLSerializer().serializeToString(svg);
-    var canvas = document.createElement("canvas");
-    canvas.width = svg.width.baseVal.value;
-    canvas.height = svg.height.baseVal.value;
-
-    var ctx = canvas.getContext("2d");
-    var image = new Image;
-    image.onload = function(){
-        ctx.drawImage( image, 0, 0 );
+    html2canvas(document.body).then(function(canvas){
         var a = document.getElementById("download-link");
         if(a == null)
         {
             a = document.createElement("a");
-            a.id = "download-link"
+            a.id = "download-link";
             document.getElementById("inputArea").appendChild(a)
         }
 
         a.href = canvas.toDataURL("image/png");
         a.setAttribute("download", "image.png");
         a.text = "ダウンロード(" + new Date().toString() + ")";
-    }
-    image.src = "data:image/svg+xml;charset=utf-8;base64," + btoa(unescape(encodeURIComponent(svgData)));
+    })
 }
