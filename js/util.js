@@ -1,24 +1,25 @@
 function setAttributes(element, attributesDict)
 {
-    if(arguments.length != 2)
+    if (arguments.length !== 2)
     {
         throw "setAttributes needs 2 arguments!"
     }
 
-    for(key in attributesDict)
+    for (var key in attributesDict)
     {
-        element.setAttribute(key, attributesDict[key]);
+        if (attributesDict.hasOwnProperty(key)) {
+            element.setAttribute(key, attributesDict[key]);
+        }
     }
 
     return element;
 }
 
 //テキストエリアに代入する用の関数
-function dynamicSetinTextArea(element, text, index, eve)
-{
-    if(element.length != 1)
+function dynamicSetInTextArea(element, text, index, eve) {
+    if (element.length !== 1)
     {
-        throw new Error("element length is not 1.\n Please check you are selecting the corect JQuery element.")
+        throw new Error("element length is not 1.\n Please check you are selecting the correct JQuery element.")
     }
 
     //一回空にして入れ直すとキャレットが飛ばないらしい？
@@ -30,14 +31,12 @@ function dynamicSetinTextArea(element, text, index, eve)
 //キャレットが今何行目にいるか
 function getCaretLineNumber(element, eve)
 {
-    if(element.length != 1)
+    if (element.length !== 1)
     {
-        throw new Error("element length is not 1.\n Please check you are selecting the corect JQuery element.")
+        throw new Error("element length is not 1.\n Please check you are selecting the correct JQuery element.")
     }
 
-    var index = eve.target.selectionStart;
-
-    var leftWords = index;
+    var leftWords = eve.target.selectionStart;
     var texts = element.val().split("\n");
 
     var ans = 0;

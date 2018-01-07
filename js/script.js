@@ -28,7 +28,7 @@ function setTextAreaCallBack() {
 
     //IME入力中に箱書いたり、テキストボックスを操作されると辛いのでブロック
     textAreaElement.on({
-        "compositionstart": function (e) {
+        "compositionstart": function () {
             isCompostioning = true;
         },
         "compositionend": function (e) {
@@ -47,7 +47,7 @@ function emphasizeNode(eve)
 
 function executeMapCreation(eve)
 {
-    if (inputText != textAreaElement.val() && !isCompostioning) {
+    if (inputText !== textAreaElement.val() && !isCompostioning) {
         $.when(
             createMap(eve.keyCode)
         ).done(function (result) {
@@ -62,10 +62,10 @@ function executeMapCreation(eve)
 
 function moveCaret(val, eve)
 {
-    var index = eve.target.selectionStart + caretMove;
-    index = setBetween(index, 0, $("#text").val().length);
+    var index = eve.target.selectionStart + val.caretMove;
+    index = setBetween(index, 0, textAreaElement.val().length);
 
-    dynamicSetinTextArea($("#text"), val.text, index, eve);
+    dynamicSetInTextArea(textAreaElement, val.text, index, eve);
 
     window.setTimeout(function() {
         eve.target.setSelectionRange(index, index);
@@ -135,8 +135,7 @@ function calculateCurrentSVGSize() {
 
 function calculateCurrentSVGHeight(rectElements, mapElement) {
     var yMax = rectElements[rectElements.length - 1].getBoundingClientRect().bottom;
-    var newHeight = yMax - mapElement.getBoundingClientRect().top;
-    return newHeight;
+    return yMax - mapElement.getBoundingClientRect().top;
 }
 
 function calculateCurrentSVGWidth(rectElements, mapElement) {
@@ -145,8 +144,7 @@ function calculateCurrentSVGWidth(rectElements, mapElement) {
         xMax = Math.max(xMax, rectElements[i].getBoundingClientRect().right);
     }
 
-    var newWidth = xMax - document.getElementById("map").getBoundingClientRect().left;
-    return newWidth
+    return xMax - mapElement.getBoundingClientRect().left
 }
 
 function fillBackGroundWhite(size) {
@@ -172,27 +170,27 @@ function initMap()
 function decideNodePosition()
 {
     var yCounter = 0;
-
-    for(var i = 0; i < nodeArray.length; i++)
+    var i;
+    for (i = 0; i < nodeArray.length; i++)
     {
         var level = nodeArray[i].level;
         nodeArray[i]["x"] = level * (nodeWidth + xMargin);
 
-        if(nodeArray[i].children.length == 0)
+        if (nodeArray[i].children.length === 0)
         {
             nodeArray[i]["y"] = yCounter;
             yCounter += nodeArray[i].height + yMargin;
         }
     }
 
-    for(var i = nodeArray.length - 1; i >= 0; i--)
+    for (i = nodeArray.length - 1; i >= 0; i--)
     {
         if(nodeArray[i].children.length > 0)
         {
             var y = 0;
             var middleNodeID = Math.floor(nodeArray[i].children.length/2);
 
-            if(nodeArray[i].children.length % 2 == 1)
+            if (nodeArray[i].children.length % 2 === 1)
             {
                 y = nodeArray[i].children[middleNodeID].y + nodeArray[i].children[middleNodeID].height/2 - nodeArray[i].height/2;
             }
@@ -220,11 +218,11 @@ function connectNodes(fromNode, toNode)
     document.getElementById("map").appendChild(lineElement);
 }
 
-function normalizeText(text, keyCode) {
-    textArray = text.split("\n");
-    changed = false;
-    caretMove = 0;
-    normalizeLog = [];
+function normalizeText(input, keyCode) {
+    var textArray = input.split("\n");
+    var changed = false;
+    var caretMove = 0;
+    var normalizeLog = [];
 
     for(var i = 0; i < textArray.length; i++)
     {
@@ -278,16 +276,13 @@ function normalizeText(text, keyCode) {
     return {caretMove: caretMove, text: textArray.join("\n"), normalizeLog: normalizeLog};
 }
 
-function parseText(text)
-{
-    lines = text.split("\n");
-    mapObject = {};
-    nodeArray = [];
+function parseText(input) {
+    var lines = input.split("\n");
+    var nodeArray = [];
+    var levelArray = [null];
 
-    levelArray = [];
-    levelArray[0] = null;
-
-    for(var i = 0; i < lines.length; i++)
+    var i;
+    for (i = 0; i < lines.length; i++)
     {
         var level = -1;
         var text = lines[i];
@@ -317,16 +312,16 @@ function parseText(text)
             }
         }
 
-        textArray = breakWord(text.trim(), characterPerLine);
+        var textArray = breakWord(text.trim(), characterPerLine);
 
         var node = {id: i.toString(), textArray: textArray, level: level, parent: levelArray[level]};
         nodeArray.push(node);
         levelArray[level + 1] = node;
     }
-    
-    childrenMap = {};
 
-    for(var i = nodeArray.length - 1; i >= 0; i--)
+    var childrenMap = {};
+
+    for (i = nodeArray.length - 1; i >= 0; i--)
     {
         if(nodeArray[i].id in childrenMap)
         {
