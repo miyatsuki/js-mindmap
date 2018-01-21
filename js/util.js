@@ -1,4 +1,10 @@
 define(['defines'], function(defines) {
+    /**
+    * get current height of mindmap
+    * @param {htmlElement} element htmlElement to setAttribue
+    * @param {dict} attributesDict name of attribute and value
+    * @return {htmlElement} input element with attributes setted
+    */
     function setAttributes(element, attributesDict) {
         if (arguments.length !== 2) {
             throw new Error('setAttributes needs 2 arguments!');
@@ -13,13 +19,21 @@ define(['defines'], function(defines) {
         return element;
     }
 
-    // テキストエリアに代入する用の関数
+    /**
+    * sets text in text area and moves caret at the same time
+    * @param {htmlElement} element htmlElement that represents textarea
+    * @param {string} text text to set in textarea
+    * @param {integer} index position of caret
+    * @param {object} eve eventListener
+    */
     function dynamicSetInTextArea(element, text, index, eve) {
+        // テキストエリアに代入する用の関数
+
         if (element.length !== 1) {
-            let errorText =
+            throw new Error(
                 'element length is not 1.\n'
-                + 'Please check you are selecting the correct JQuery element.';
-            throw new Error(errorText);
+                + 'Please check you are selecting the correct JQuery element.'
+            );
         }
 
         // 一回空にして入れ直すとキャレットが飛ばないらしい？
@@ -28,13 +42,20 @@ define(['defines'], function(defines) {
         eve.target.setSelectionRange(index, index);
     }
 
-    // キャレットが今何行目にいるか
+    /**
+    * gets line number of caret in textarea
+    * @param {htmlElement} element htmlElement that represents textarea
+    * @param {object} eve eventListener
+    * @return {integer} line number of caret
+    */
     function getCaretLineNumber(element, eve) {
+        // キャレットが今何行目にいるか
+
         if (element.length !== 1) {
-            let errorText =
+            throw new Error(
                 'element length is not 1.\n'
-                + 'Please check you are selecting the correct JQuery element.';
-            throw new Error(errorText);
+                + 'Please check you are selecting the correct JQuery element.'
+            );
         }
 
         let leftWords = eve.target.selectionStart;
@@ -57,8 +78,15 @@ define(['defines'], function(defines) {
         return ans;
     }
 
-    function breakWord(text, characterPerLine) {
+
+    /**
+    * break texts into array using defined 'characterPerLine'
+    * @param {string} text text to break into lines
+    * @return {array} string broken int lines
+    */
+    function breakWord(text) {
         let ans = [''];
+        let characterPerLine = defines.getConstant('characterPerLine');
 
         let lines = 0;
         let count = 0;
@@ -77,16 +105,33 @@ define(['defines'], function(defines) {
         return ans;
     }
 
-    function getLastOf(array) {
-        return array[array.length - 1];
+    /**
+    * get height of text according to the define and line number
+    * @param {integer} num number of lines
+    * @return {integer} pixels for num lines texts
+    */
+    function getTextHeight(num) {
+        return defines.getConstant('lineHeight') * num;
     }
 
-    function getCenterY(node) {
-        return node.y + node.height / 2;
-    }
-
+    /**
+    * get height of text according to the define and line number
+    * @param {string} name name of svg element
+    * @return {svgElement} SVG element create by document.createElementNS
+    */
     function createSVGElement(name) {
         return document.createElementNS(defines.getConstant('svgNS'), name);
+    }
+
+    /**
+    * get height of text according to the define and line number
+    * @param {integer} level level of the node
+    * @return {integer} x position according to the level
+    */
+    function getXfromLevel(level) {
+        let width = defines.getConstant('nodeWidth');
+        let margin = defines.getConstant('xMargin');
+        return level * (width + margin);
     }
 
     return {
@@ -95,8 +140,8 @@ define(['defines'], function(defines) {
         getCaretLineNumber: getCaretLineNumber,
         setBetween: setBetween,
         breakWord: breakWord,
-        getLastOf: getLastOf,
-        getCenterY: getCenterY,
+        getTextHeight: getTextHeight,
         createSVGElement: createSVGElement,
+        getXfromLevel: getXfromLevel,
     };
 });

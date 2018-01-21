@@ -5,11 +5,11 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
     let nodeArray = [];
     let textAreaElement = $('#text');
 
-    console.log(defines);
-    console.log(util);
-
     init();
 
+    /**
+    * initialize svg for onload
+    */
     function init() {
         setTextAreaCallBack();
 
@@ -20,6 +20,9 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
         createMap(-1);
     }
 
+    /**
+    * set callback for text area
+    */
     function setTextAreaCallBack() {
         textAreaElement.keyup(function(e) {
             executeMapCreation(e);
@@ -41,17 +44,26 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
         });
     }
 
+    /**
+    * set callback for text area
+    * @param {object} eve eventListener
+    */
     function emphasizeNode(eve) {
         // テキストエリアの行数とnodeIDは一致するので、キャレットの行数を取得してそのIDを強調表示する
         let emphasizeID = util.getCaretLineNumber($('#text'), eve);
+        let nodeRectlement = document.getElementsByClassName('nodeRect');
         view.changeSingleNodeColor(
-            document.getElementsByClassName('nodeRect'),
+            nodeRectlement,
             emphasizeID,
             '#E1F7E7',
             'white'
         );
     }
 
+    /**
+    * create map
+    * @param {object} eve eventListener
+    */
     function executeMapCreation(eve) {
         if (inputText !== textAreaElement.val() && !isCompostioning) {
             $.when(
@@ -66,6 +78,11 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
         }
     }
 
+    /**
+    * create map
+    * @param {object} val returned object from parsetext
+    * @param {object} eve eventListener
+    */
     function moveCaret(val, eve) {
         let index = eve.target.selectionStart + val.caretMove;
         index = setBetween(index, 0, textAreaElement.val().length);
@@ -105,19 +122,25 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
         }
     }
 
+    /**
+    * set initial node and height for each nodes.
+    */
     function setInitialNodeSettings() {
         for (let i = 0; i < nodeArray.length; i++) {
             let node = nodeArray[i];
             node['width'] = defines.getConstant('nodeWidth');
 
-            let heightMargin = defines.getConstant('innerMargin') * 3;
-            let textLines = node.textArray.length;
-            let textHeight = defines.getConstant('lineHeight') * textLines;
-            node['height'] = heightMargin + textHeight;
+            let innerMargin = defines.getConstant('innerMargin') * 3;
+            let textHeight = util.getTextHeight(node.textArray.length);
+            node['height'] = innerMargin + textHeight;
         }
         view.propagateInnerTextSize(nodeArray);
     }
 
+    /**
+    * set svg element width and height suitable for curent mindmap
+    * @return {object} pixels for size of svg
+    */
     function changeSVGSize() {
         let size = calculateCurrentSVGSize();
         let mapElement = document.getElementById('map');
@@ -137,27 +160,41 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
         };
     }
 
+    /**
+    * get current height of mindmap
+    * @param {array} rectElements array of rectElement
+    * @param {htmlElement} mapElement html element of getElementbyID
+    * @return {integer} height of mindmap in pixel
+    */
     function calculateCurrentSVGHeight(rectElements, mapElement) {
-        let yMax = util.getLastOf(rectElements).getBoundingClientRect().bottom;
+        let lastElement = rectElements[rectElements.length - 1];
+        let yMax = lastElement.getBoundingClientRect().bottom;
         return yMax - mapElement.getBoundingClientRect().top;
     }
 
+    /**
+    * get current width of mindmap
+    * @param {array} rectElements array of rectElement
+    * @param {htmlElement} mapElement html element of getElementbyID
+    * @return {integer} width of mindmap in pixel
+    */
     function calculateCurrentSVGWidth(rectElements, mapElement) {
         let xMax = 0;
         for (let i = 0; i < rectElements.length; i++) {
-            let ithElementxMax = rectElements[i].getBoundingClientRect().right;
-            xMax = Math.max(xMax, ithElementxMax);
+            let element = rectElements[i];
+            xMax = Math.max(xMax, element.getBoundingClientRect().right);
         }
 
         return xMax - mapElement.getBoundingClientRect().left;
     }
 
+    /**
+    * fill background of svg
+    * @param {object} size object with svg width and height
+    */
     function fillBackGroundWhite(size) {
         // SVGの幅に合わせて背景を白埋め
-        let rectElement = document.createElementNS(
-            defines.getConstant('svgNS'),
-            'rect'
-        );
+        let rectElement = util.createSVGElement('rect');
         rectElement = util.setAttributes(rectElement, {
             width: size.width,
             height: size.height,
@@ -175,13 +212,16 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
         $('#map').empty();
     }
 
+    /**
+    * decides position of each node
+    */
     function decideNodePosition() {
         let yCounter = 0;
         let i;
         for (i = 0; i < nodeArray.length; i++) {
             let node = nodeArray[i];
             let level = node.level;
-            node['x'] = level * defines.getConstant('xPerLevel');
+            node['x'] = util.getXfromLevel(level);
 
             if (node.children.length === 0) {
                 node['y'] = yCounter;
@@ -191,29 +231,34 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
 
         for (i = nodeArray.length - 1; i >= 0; i--) {
             let node = nodeArray[i];
-
             if (node.children.length > 0) {
                 let y = 0;
-                let middleNodeID = Math.floor(node.children.length / 2);
-                let upperMiddleChild = node.children[middleNodeID];
-                let lowerMiddleChild = node.children[middleNodeID - 1];
+                let upperMiddleNodeID = Math.floor(node.children.length / 2);
+                let upperMiddleChild = node.children[upperMiddleNodeID];
 
                 if (node.children.length % 2 === 1) {
-                    y = util.getCenterY(upperMiddleChild);
+                    y = upperMiddleChild.y + upperMiddleChild.height / 2;
                 } else {
-                    let y1 = util.getCenterY(upperMiddleChild);
-                    let y2 = util.getCenterY(lowerMiddleChild);
+                    let lowerMiddleChild = node.children[upperMiddleNodeID- 1];
+
+                    let y1 = upperMiddleChild.y + upperMiddleChild.height / 2;
+                    let y2 = lowerMiddleChild.y + lowerMiddleChild.height / 2;
                     y = (y1 + y2) / 2;
                 }
 
-                nodeArray[i]['y'] = y - node.height / 2; ;
+                node['y'] = y - node.height / 2;
             }
         }
     }
 
+    /**
+    * normalize the input text using the keycode
+    * @param {string} input text to normalize
+    * @param {integer} keyCode last keyCode when editing the text area
+    * @return {dict} returns normalized text and normalize type done
+    */
     function normalizeText(input, keyCode) {
         let textArray = input.split('\n');
-//        let changed = false;
         let caretMove = 0;
         let normalizeLog = [];
 
@@ -224,7 +269,6 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
             // 全角1スペースがいきなり2スペースになると焦るので置換だけにする
             if (/　/.test(text)) {
                 text = text.replace(/　/g, ' ');
-//                changed = true;
                 caretMove += 0;
                 normalizeLog.push('全角1スペ -> 半角1スペ');
             }
@@ -232,7 +276,6 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
             // 文頭の＊入力効率化のため、文頭の＊を*に変換
             if (/^\s*＊/.test(text)) {
                 text = text.replace('＊', '*');
-//                changed = true;
                 caretMove += 0;
                 normalizeLog.push('/^\s*＊/');
             }
@@ -242,7 +285,6 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
                 // backspaceキー(8)とdelete(46)が押されている間に自動挿入が発動すると辛いので除外
                 if (!(keyCode === 8 || keyCode === 46)) {
                     text = text.replace('*', '* ');
-//                    changed = true;
                     caretMove += 1;
                     normalizeLog.push('/^\s*\*\s');
                 }
@@ -251,11 +293,6 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
             // 逆に*直後のスペースが多すぎるとmd的にだめなので1つにする
             while (/\*\s{2,}/.test(text)) {
                 text = text.replace(/\*\s\s/, '* ');
-//                changed = true;
-                caretMove -= 1;
-                normalizeLog.push('/\*\s{2,}/');
-            }
-
             textArray[i] = text;
         }
 
@@ -266,6 +303,10 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
         };
     }
 
+    /**
+    * parse input text
+    * @param {string} input text to parse
+    */
     function parseText(input) {
         let lines = input.split('\n');
         let levelArray = [null];
@@ -293,10 +334,7 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
                 }
             }
 
-            let textArray = util.breakWord(
-                text.trim(),
-                defines.getConstant('characterPerLine')
-            );
+            let textArray = util.breakWord(text.trim());
 
             let node = {
                 id: i.toString(),
@@ -328,6 +366,9 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
         }
     }
 
+    /**
+    * creates download link of mindmap as png
+    */
     function saveAsPNG() {
         let svg = document.querySelector('svg');
         let svgData = new XMLSerializer().serializeToString(svg);
@@ -350,7 +391,8 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
             a.setAttribute('download', 'image.png');
             a.text = 'ダウンロード(' + new Date().toString() + ')';
         };
-        let svgString = btoa(unescape(encodeURIComponent(svgData)));
-        image.src = 'data:image/svg+xml;charset=utf-8;base64,' + svgString;
+        let encodeSVG = btoa(unescape(encodeURIComponent(svgData)));
+        image.src = 'data:image/svg+xml;charset=utf-8;base64,' + encodeSVG;
+     }
     }
 });
