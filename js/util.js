@@ -1,7 +1,7 @@
 define(function() {
     function setAttributes(element, attributesDict) {
         if (arguments.length !== 2) {
-            throw 'setAttributes needs 2 arguments!';
+            throw new Error('setAttributes needs 2 arguments!');
         }
 
         for (let key in attributesDict) {
@@ -16,7 +16,10 @@ define(function() {
     // テキストエリアに代入する用の関数
     function dynamicSetInTextArea(element, text, index, eve) {
         if (element.length !== 1) {
-            throw new Error('element length is not 1.\n Please check you are selecting the correct JQuery element.');
+            let errorText =
+                'element length is not 1.\n'
+                + 'Please check you are selecting the correct JQuery element.';
+            throw new Error(errorText);
         }
 
         // 一回空にして入れ直すとキャレットが飛ばないらしい？
@@ -28,7 +31,10 @@ define(function() {
     // キャレットが今何行目にいるか
     function getCaretLineNumber(element, eve) {
         if (element.length !== 1) {
-            throw new Error('element length is not 1.\n Please check you are selecting the correct JQuery element.');
+            let errorText =
+                'element length is not 1.\n'
+                + 'Please check you are selecting the correct JQuery element.';
+            throw new Error(errorText);
         }
 
         let leftWords = eve.target.selectionStart;

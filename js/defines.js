@@ -6,9 +6,9 @@ define(function() {
         yMargin: 20,
         lineHeight: 15,
         innerMargin: 3,
-        characterPerLine: 16
+        characterPerLine: 16,
     };
-    constant["xPerLevel"] = constant.nodeWidth + constant.xMargin;
+    constant['xPerLevel'] = constant.nodeWidth + constant.xMargin;
 
     function getConstant(id) {
         return constant[id];
