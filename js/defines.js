@@ -1,20 +1,32 @@
-var svgNS = 'http://www.w3.org/2000/svg';
-
-var nodeWidth = 105;
-var xMargin = 50;
-var yMargin = 20;
-
-var lineHeight = 15;
-var innerMargin = 3;
-var characterPerLine = 16;
-
-function getTextElementSettings(node) {
-    return {
-        'class': 'nodeID-' + node.id,
-        'width': node.width,
-        'height': node.height - innerMargin * 2,
-        'x': node.x + innerMargin,
-        'y': node.y + innerMargin,
-        'font-family': 'monospace',
+define(function() {
+    const constant = {
+        svgNS: 'http://www.w3.org/2000/svg',
+        nodeWidth: 105,
+        xMargin: 50,
+        yMargin: 20,
+        lineHeight: 15,
+        innerMargin: 3,
+        characterPerLine: 16,
     };
-}
+
+    function getConstant(id) {
+        return constant[id];
+    }
+
+    function getTextElementSettings(node) {
+        return {
+            'class': 'nodeID-' + node.id,
+            'width': node.width,
+            'height': node.height - constant.innerMargin * 2,
+            'x': node.x + constant.innerMargin,
+            'y': node.y + constant.innerMargin,
+            'font-family': 'monospace',
+        };
+    }
+
+    return {
+        'getConstant': getConstant,
+        'getTextElementSettings': getTextElementSettings,
+    };
+});
+
