@@ -1,0 +1,26 @@
+{
+  "name": "js-mindmap",
+  "version": "1.0.0",
+  "description": "simple mind map generator works on the browser",
+  "main": "index.js",
+  "scripts": {
+    "lint-fix": "eslint --fix src",
+    "lint": "eslint src",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/miyatsuki/js-mindmap.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/miyatsuki/js-mindmap/issues"
+  },
+  "homepage": "https://github.com/miyatsuki/js-mindmap#readme",
+  "dependencies": {
+    "eslint": "^4.16.0",
+    "eslint-config-google": "^0.9.1",
+    "jquery": "^3.3.1"
+  }
+}
