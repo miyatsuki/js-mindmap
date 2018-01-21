@@ -1,4 +1,4 @@
-define(function() {
+define(['defines'], function(defines) {
     function setAttributes(element, attributesDict) {
         if (arguments.length !== 2) {
             throw new Error('setAttributes needs 2 arguments!');
@@ -85,6 +85,10 @@ define(function() {
         return node.y + node.height / 2;
     }
 
+    function createSVGElement(name) {
+        return document.createElementNS(defines.getConstant('svgNS'), name);
+    }
+
     return {
         setAttributes: setAttributes,
         dynamicSetInTextArea: dynamicSetInTextArea,
@@ -93,5 +97,6 @@ define(function() {
         breakWord: breakWord,
         getLastOf: getLastOf,
         getCenterY: getCenterY,
+        createSVGElement: createSVGElement,
     };
 });

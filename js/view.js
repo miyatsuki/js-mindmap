@@ -1,10 +1,14 @@
 define(['util', 'defines'], function(util, defines) {
     function propagateInnerTextSize(nodeArray) {
         for (let i = 0; i < nodeArray.length; i++) {
-            if (nodeArray[i].children.length > 0) {
-                let propagetedHeight = nodeArray[i].height/nodeArray[i].children.length;
-                for (let j = 0; j < nodeArray[i].children.length; j++) {
-                    nodeArray[nodeArray[i].children[j].id].height = Math.max(propagetedHeight, nodeArray[nodeArray[i].children[j].id].height);
+            let node = nodeArray[i];
+            if (node.children.length > 0) {
+                let propagetedHeight = node.height/node.children.length;
+                for (let j = 0; j < node.children.length; j++) {
+                    let childNode = nodeArray[node.children[j].id];
+                    if (childNode.height < propagetedHeight) {
+                        childNode.height = propagetedHeight;
+                    }
                 }
             }
         }
@@ -19,7 +23,7 @@ define(['util', 'defines'], function(util, defines) {
     }
 
     function connectNodes(fromNode, toNode) {
-        let lineElement = document.createElementNS(defines.getConstant('svgNS'), 'line');
+        let lineElement = util.createSVGElement('line');
         lineElement.setAttribute('x1', fromNode.x + fromNode.width);
         lineElement.setAttribute('y1', fromNode.y + fromNode.height / 2);
         lineElement.setAttribute('x2', toNode.x);
@@ -37,8 +41,11 @@ define(['util', 'defines'], function(util, defines) {
             y: node.y,
         };
 
-        let rectElement = document.createElementNS(defines.getConstant('svgNS'), 'rect');
-        rectElement = util.setAttributes(rectElement, {fill: 'white', stroke: 'black'});
+        let rectElement = util.createSVGElement('rect');
+        rectElement = util.setAttributes(rectElement, {
+            fill: 'white',
+            stroke: 'black',
+        });
         rectElement.setAttribute('class', 'nodeRect nodeID-' + node.id);
         rectElement = util.setAttributes(rectElement, rectSettings);
 
@@ -47,18 +54,21 @@ define(['util', 'defines'], function(util, defines) {
 
     function createTextElement(node) {
         let textSettings = defines.getTextElementSettings(node);
-        let textElement = document.createElementNS(defines.getConstant('svgNS'), 'text');
+        let textElement = util.createSVGElement('text');
+
         textElement = util.setAttributes(textElement, textSettings);
 
         for (let i = 0; i < node.textArray.length; i++) {
-            textElement.appendChild(createTSpanElement(node, textSettings.x, i));
+            let tspanElement = createTSpanElement(node, textSettings.x, i);
+            textElement.appendChild(tspanElement);
         }
 
         return textElement;
     }
 
     function createTSpanElement(node, parentX, lineNumber) {
-        let tspanElement = document.createElementNS(defines.getConstant('svgNS'), 'tspan');
+        let tspanElement = util.createSVGElement('tspan');
+
         tspanElement.innerHTML = node.textArray[lineNumber];
         tspanElement.setAttribute('dy', defines.getConstant('lineHeight'));
         tspanElement.setAttribute('x', parentX);
@@ -67,7 +77,9 @@ define(['util', 'defines'], function(util, defines) {
 
     function changeSingleNodeColor(nodeRectElements, id, color, defaultColor) {
         for (let i = 0; i < nodeRectElements.length; i++) {
-            let nodeID = nodeRectElements[i].className.baseVal.replace('nodeRect', '').replace('nodeID-', '').trim();
+            let nodeClasses = nodeRectElements[i].className.baseVal;
+
+            let nodeID = nodeClasses.replace(/(nodeRect|nodeID-)/, '').trim();
             if (nodeID === id) {
                 nodeRectElements[i].setAttribute('fill', color);
             } else {
