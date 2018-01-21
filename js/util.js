@@ -71,11 +71,21 @@ define(function() {
         return ans;
     }
 
+    function getLastOf(array) {
+        return array[array.length - 1];
+    }
+
+    function getCenterY(node) {
+        return node.y + node.height / 2;
+    }
+
     return {
         setAttributes: setAttributes,
         dynamicSetInTextArea: dynamicSetInTextArea,
         getCaretLineNumber: getCaretLineNumber,
         setBetween: setBetween,
         breakWord: breakWord,
+        getLastOf: getLastOf,
+        getCenterY: getCenterY,
     };
 });

@@ -44,7 +44,12 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
     function emphasizeNode(eve) {
         // テキストエリアの行数とnodeIDは一致するので、キャレットの行数を取得してそのIDを強調表示する
         let emphasizeID = util.getCaretLineNumber($('#text'), eve);
-        view.changeSingleNodeColor(document.getElementsByClassName('nodeRect'), emphasizeID, '#E1F7E7', 'white');
+        view.changeSingleNodeColor(
+            document.getElementsByClassName('nodeRect'),
+            emphasizeID,
+            '#E1F7E7',
+            'white'
+        );
     }
 
     function executeMapCreation(eve) {
@@ -102,17 +107,22 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
 
     function setInitialNodeSettings() {
         for (let i = 0; i < nodeArray.length; i++) {
-            nodeArray[i]['width'] = defines.getConstant('nodeWidth');
-            nodeArray[i]['height'] = defines.getConstant('innerMargin') * 3 + defines.getConstant('lineHeight') * nodeArray[i].textArray.length;
+            let node = nodeArray[i];
+            node['width'] = defines.getConstant('nodeWidth');
+
+            let heightMargin = defines.getConstant('innerMargin') * 3;
+            let textLines = node.textArray.length;
+            let textHeight = defines.getConstant('lineHeight') * textLines;
+            node['height'] = heightMargin + textHeight;
         }
         view.propagateInnerTextSize(nodeArray);
     }
 
     function changeSVGSize() {
         let size = calculateCurrentSVGSize();
-
-        document.getElementById('map').setAttribute('width', size.width.toString());
-        document.getElementById('map').setAttribute('height', size.height.toString());
+        let mapElement = document.getElementById('map');
+        mapElement.setAttribute('width', size.width.toString());
+        mapElement.setAttribute('height', size.height.toString());
 
         return size;
     }
@@ -128,14 +138,15 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
     }
 
     function calculateCurrentSVGHeight(rectElements, mapElement) {
-        let yMax = rectElements[rectElements.length - 1].getBoundingClientRect().bottom;
+        let yMax = util.getLastOf(rectElements).getBoundingClientRect().bottom;
         return yMax - mapElement.getBoundingClientRect().top;
     }
 
     function calculateCurrentSVGWidth(rectElements, mapElement) {
         let xMax = 0;
         for (let i = 0; i < rectElements.length; i++) {
-            xMax = Math.max(xMax, rectElements[i].getBoundingClientRect().right);
+            let ithElementxMax = rectElements[i].getBoundingClientRect().right;
+            xMax = Math.max(xMax, ithElementxMax);
         }
 
         return xMax - mapElement.getBoundingClientRect().left;
@@ -143,7 +154,10 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
 
     function fillBackGroundWhite(size) {
         // SVGの幅に合わせて背景を白埋め
-        let rectElement = document.createElementNS(defines.getConstant('svgNS'), 'rect');
+        let rectElement = document.createElementNS(
+            defines.getConstant('svgNS'),
+            'rect'
+        );
         rectElement = util.setAttributes(rectElement, {
             width: size.width,
             height: size.height,
@@ -153,7 +167,8 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
             stroke: 'White',
         });
 
-        document.getElementById('map').insertBefore(rectElement, document.getElementById('map').firstChild);
+        let mapElement = document.getElementById('map');
+        mapElement.insertBefore(rectElement, mapElement.firstChild);
     }
 
     function initMap() {
@@ -164,36 +179,41 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
         let yCounter = 0;
         let i;
         for (i = 0; i < nodeArray.length; i++) {
-            let level = nodeArray[i].level;
-            nodeArray[i]['x'] = level * (defines.getConstant('nodeWidth') + defines.getConstant('xMargin'));
+            let node = nodeArray[i];
+            let level = node.level;
+            node['x'] = level * defines.getConstant('xPerLevel');
 
-            if (nodeArray[i].children.length === 0) {
-                nodeArray[i]['y'] = yCounter;
-                yCounter += nodeArray[i].height + defines.getConstant('yMargin');
+            if (node.children.length === 0) {
+                node['y'] = yCounter;
+                yCounter += node.height + defines.getConstant('yMargin');
             }
         }
 
         for (i = nodeArray.length - 1; i >= 0; i--) {
-            if (nodeArray[i].children.length > 0) {
-                let y = 0;
-                let middleNodeID = Math.floor(nodeArray[i].children.length / 2);
+            let node = nodeArray[i];
 
-                if (nodeArray[i].children.length % 2 === 1) {
-                    y = nodeArray[i].children[middleNodeID].y + nodeArray[i].children[middleNodeID].height / 2 - nodeArray[i].height / 2;
+            if (node.children.length > 0) {
+                let y = 0;
+                let middleNodeID = Math.floor(node.children.length / 2);
+                let upperMiddleChild = node.children[middleNodeID];
+                let lowerMiddleChild = node.children[middleNodeID - 1];
+
+                if (node.children.length % 2 === 1) {
+                    y = util.getCenterY(upperMiddleChild);
                 } else {
-                    let y1 = nodeArray[i].children[middleNodeID].y + nodeArray[i].children[middleNodeID].height / 2 - nodeArray[i].height / 2;
-                    let y2 = nodeArray[i].children[middleNodeID - 1].y + nodeArray[i].children[middleNodeID - 1].height / 2 - nodeArray[i].height / 2;
+                    let y1 = util.getCenterY(upperMiddleChild);
+                    let y2 = util.getCenterY(lowerMiddleChild);
                     y = (y1 + y2) / 2;
                 }
 
-                nodeArray[i]['y'] = y;
+                nodeArray[i]['y'] = y - node.height / 2; ;
             }
         }
     }
 
     function normalizeText(input, keyCode) {
         let textArray = input.split('\n');
-        let changed = false;
+//        let changed = false;
         let caretMove = 0;
         let normalizeLog = [];
 
@@ -204,7 +224,7 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
             // 全角1スペースがいきなり2スペースになると焦るので置換だけにする
             if (/　/.test(text)) {
                 text = text.replace(/　/g, ' ');
-                changed = true;
+//                changed = true;
                 caretMove += 0;
                 normalizeLog.push('全角1スペ -> 半角1スペ');
             }
@@ -212,7 +232,7 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
             // 文頭の＊入力効率化のため、文頭の＊を*に変換
             if (/^\s*＊/.test(text)) {
                 text = text.replace('＊', '*');
-                changed = true;
+//                changed = true;
                 caretMove += 0;
                 normalizeLog.push('/^\s*＊/');
             }
@@ -222,7 +242,7 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
                 // backspaceキー(8)とdelete(46)が押されている間に自動挿入が発動すると辛いので除外
                 if (!(keyCode === 8 || keyCode === 46)) {
                     text = text.replace('*', '* ');
-                    changed = true;
+//                    changed = true;
                     caretMove += 1;
                     normalizeLog.push('/^\s*\*\s');
                 }
@@ -231,7 +251,7 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
             // 逆に*直後のスペースが多すぎるとmd的にだめなので1つにする
             while (/\*\s{2,}/.test(text)) {
                 text = text.replace(/\*\s\s/, '* ');
-                changed = true;
+//                changed = true;
                 caretMove -= 1;
                 normalizeLog.push('/\*\s{2,}/');
             }
@@ -239,7 +259,11 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
             textArray[i] = text;
         }
 
-        return {caretMove: caretMove, text: textArray.join('\n'), normalizeLog: normalizeLog};
+        return {
+            caretMove: caretMove,
+            text: textArray.join('\n'),
+            normalizeLog: normalizeLog,
+        };
     }
 
     function parseText(input) {
@@ -269,9 +293,18 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
                 }
             }
 
-            let textArray = util.breakWord(text.trim(), defines.getConstant('characterPerLine'));
+            let textArray = util.breakWord(
+                text.trim(),
+                defines.getConstant('characterPerLine')
+            );
 
-            let node = {id: i.toString(), textArray: textArray, level: level, parent: levelArray[level]};
+            let node = {
+                id: i.toString(),
+                textArray: textArray,
+                level: level,
+                parent: levelArray[level],
+            };
+
             nodeArray.push(node);
             levelArray[level + 1] = node;
         }
@@ -317,6 +350,7 @@ require(['util', 'defines', 'view'], function(util, defines, view) {
             a.setAttribute('download', 'image.png');
             a.text = 'ダウンロード(' + new Date().toString() + ')';
         };
-        image.src = 'data:image/svg+xml;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+        let svgString = btoa(unescape(encodeURIComponent(svgData)));
+        image.src = 'data:image/svg+xml;charset=utf-8;base64,' + svgString;
     }
 });

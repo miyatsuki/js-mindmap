@@ -1,13 +1,14 @@
 define(function() {
-    const constant = {
+    let constant = {
         svgNS: 'http://www.w3.org/2000/svg',
         nodeWidth: 105,
         xMargin: 50,
         yMargin: 20,
         lineHeight: 15,
         innerMargin: 3,
-        characterPerLine: 16,
+        characterPerLine: 16
     };
+    constant["xPerLevel"] = constant.nodeWidth + constant.xMargin;
 
     function getConstant(id) {
         return constant[id];
